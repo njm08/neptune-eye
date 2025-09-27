@@ -3,7 +3,6 @@ from ultralytics import YOLO
 from pathlib import Path
 from enum import Enum, auto
 import torch
-from . import __version__
 
 # TODO Move to a config module.
 class YoloModelSize(Enum):
@@ -20,11 +19,11 @@ class InferenceDevice(Enum):
     CPU = 'cpu'
 
 # *****************  Configuration  ************************
-YOLO_MODEL_SIZE = YoloModelSize.YOLO11N     # Options: YoloModelSize.YOLO11N, YoloModelSize.YOLO11S
-FP16 = True                                 # True, use FP16 precision
-OVERRIDE_DEVICE = InferenceDevice.CPU       # Options: None, InferenceDevice.NVIDIA_GPU, InferenceDevice.M1_GPU, InferenceDevice.CPU
-OVERRIDE_MODEL_PATH = "models/m1/yolo11n_cpu.onnx"  # Options: None, path to model file
-CAMERA_INDEX = 1                            # Camera index. 0 for default camera (usually built-in), 1 for external camera, etc.
+YOLO_MODEL_SIZE = YoloModelSize.YOLO11S     # Options: YoloModelSize.YOLO11N, YoloModelSize.YOLO11S
+FP16 = False                                # True, use FP16 precision
+OVERRIDE_DEVICE = None                      # Options: None, InferenceDevice.NVIDIA_GPU, InferenceDevice.M1_GPU, InferenceDevice.CPU
+OVERRIDE_MODEL_PATH = None                  # Options: None, path to model file
+CAMERA_INDEX = 0                            # Camera index. 0 for default camera (usually built-in), 1 for external camera, etc.
 # ***********************************************************
 
 def detect_device():
@@ -35,8 +34,8 @@ def detect_device():
     """
     
     if OVERRIDE_DEVICE is not None:
-        print(f"Forcing device to: {OVERRIDE_DEVICE.name}")
-        return OVERRIDE_DEVICE
+        print(f"Forcing device to: {OVERRIDE_DEVICE}")
+        return InferenceDevice(OVERRIDE_DEVICE)
     
     if torch.backends.mps.is_available():
         device = InferenceDevice.M1_GPU
@@ -69,14 +68,14 @@ def setup_inference():
         if device == InferenceDevice.NVIDIA_GPU:
             if YOLO_MODEL_SIZE == YoloModelSize.YOLO11N:
                 if FP16:
-                    yolo_model_fp = "models/jetson/yolo11n_16fpu_gpu.engine"
+                    yolo_model_fp = "models/jetson/yolo11n_16fp_gpu.engine"
                 else:
-                    yolo_model_fp = "models/jetson/yolo11n_gpu.engine"
+                    yolo_model_fp = "models/jetson/yolo11n_32fp_gpu.engine"
             elif YOLO_MODEL_SIZE == YoloModelSize.YOLO11S:
                 if FP16:
-                    yolo_model_fp = "models/jetson/yolo11s_16fpu_gpu.engine"
+                    yolo_model_fp = "models/jetson/yolo11s_16fp_gpu.engine"
                 else:
-                    yolo_model_fp = "models/jetson/yolo11s_gpu.engine"
+                    yolo_model_fp = "models/jetson/yolo11s_32fp_gpu.engine"
         elif device == InferenceDevice.M1_GPU or device == InferenceDevice.CPU:
             if YOLO_MODEL_SIZE == YoloModelSize.YOLO11N:
                 yolo_model_fp = "models/m1/yolo11n.pt"
@@ -84,7 +83,7 @@ def setup_inference():
                 yolo_model_fp = "models/m1/yolo11s.pt"
     
     # Combine root path with YOLO model file path
-    root_dir = Path(__file__).resolve().parent.parent.parent
+    root_dir = Path(__file__).resolve().parent.parent.parent.parent
     model_path = (root_dir / yolo_model_fp).resolve()
     print(f"Using YOLO model at: {model_path}")
     
@@ -142,5 +141,5 @@ def continuous_capture_and_inference():
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    print(f"Neptune Eye v{__version__}")
+    print(f"Neptune Eye")
     continuous_capture_and_inference()
