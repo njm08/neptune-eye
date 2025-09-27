@@ -1,0 +1,42 @@
+# CodeRabbit configuration for neptune-eye
+# AI-powered boat detection system using YOLO
+
+# Language configuration
+language: "en-US"
+
+# Review configuration
+reviews:
+  sequence_diagrams: false
+  path_instructions:
+    - path: "src/neptune_eye/**"
+      instructions: "Focus on code quality, ,error handling"
+        
+    - path: "tools/**"
+      instructions: "Focus on script reliability, cross-platform compatibility, and clear documentation."
+        
+    - path: "**/*.py"
+      instructions: "Focus on PEP 8 compliance, type hints, exception handling, and performance for ML workloads."
+        
+    - path: "Dockerfile*"
+      instructions: "Focus on security best practices, image size optimization, and multi-stage build efficiency."
+        
+    - path: "docker-compose.yml"
+      instructions: "Focus on service configuration best practices, volume mounting security, and environment variables."
+
+# Chat configuration
+chat:
+  auto_reply: false
+
+# File patterns to ignore in reviews
+ignore:
+  - "**/*.engine"  # Compiled YOLO models
+  - "**/*.pt"      # PyTorch model files  
+  - "**/*.onnx"    # ONNX model files
+  - "**/build/**"  # Build artifacts
+  - "**/__pycache__/**"  # Python cache
+  - "**/*.pyc"     # Compiled Python files
+  - "**/models/**" # Model files directory
+  - "res/gifs/**"  # Resource files
+
+# Tone and style preferences  
+tone_instructions: "Provide constructive feedback focusing on AI/ML best practices."
