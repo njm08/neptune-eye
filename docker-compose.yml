@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  neptune-eye:
+    build: .
+    image: neptune-eye:latest
+    container_name: neptune-eye-app
+    # Uncomment the following lines if you need to pass command line arguments
+    # command: ["python", "src/neptune_eye/neptune_eye.py", "--verbose"]
+    
+    # Uncomment if you need to mount volumes or bind directories
+    # volumes:
+    #   - ./data:/app/data
+        
+    # Uncomment if you need environment variables
+    # environment:
+    #   - ENV_VAR=value
+    
+    # Restart policy
+    restart: unless-stopped
