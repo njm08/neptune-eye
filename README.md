@@ -5,6 +5,8 @@ You go under deck and make yourself a snack. You come back to the cockpit and a 
 This scary situation can be prevented by having a camera on your mast and an AI-powered machine vision algorithm constantly looking for hazards,
 so you don't have to!
 
+![Neptune Eye Detecting Sailboats](/res/gifs/yolo_sailboat.gif) ![Neptune Eye Detecting Ferry](/res/gifs/yolo_ferry.gif)
+
 ## Goal
 
 The goal is to develop a real-time AI-powered boat detection, to warn you from boats in your path.
@@ -14,8 +16,6 @@ The goal is to develop a real-time AI-powered boat detection, to warn you from b
 - YOLO (You only look once) object detection running on NVIDIA Jetson Orin Nano with 10 ms inference.
 - YOLO also running on MacBook with 20 ms inference for developing and testing the models.
 - Docker container for seamless integration of the project on your platform.
-
-![YoloV11 Pre-trained Model](/res/gifs/yolov11.gif)
 
 ## Coming Soon
 

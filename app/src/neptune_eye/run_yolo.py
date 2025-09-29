@@ -10,6 +10,7 @@ class YoloModelSize(Enum):
     """
     YOLO11N = auto()
     YOLO11S = auto()
+    YOLO11M = auto()
 
 class InferenceDevice(Enum):
     """Chose the device for inference.
@@ -18,12 +19,24 @@ class InferenceDevice(Enum):
     M1_GPU = 'mps'
     CPU = 'cpu'
 
+class InputSource(Enum):
+    """Choose the input source for video processing.
+    """
+    CAMERA = auto()
+    MOVIE = auto()
+
 # *****************  Configuration  ************************
-YOLO_MODEL_SIZE = YoloModelSize.YOLO11S     # Options: YoloModelSize.YOLO11N, YoloModelSize.YOLO11S
+YOLO_MODEL_SIZE = YoloModelSize.YOLO11M     # Options: YoloModelSize.YOLO11N, YoloModelSize.YOLO11S
 FP16 = False                                # True, use FP16 precision
 OVERRIDE_DEVICE = None                      # Options: None, InferenceDevice.NVIDIA_GPU, InferenceDevice.M1_GPU, InferenceDevice.CPU
-OVERRIDE_MODEL_PATH = None                  # Options: None, path to model file
+#OVERRIDE_MODEL_PATH = "models/pytorch/yolo11n_maritime_best_30.pt"                  # Options: None, path to model file
+OVERRIDE_MODEL_PATH = None            # Options: None, path to model file
+
+INPUT_SOURCE = InputSource.MOVIE           # Options: InputSource.CAMERA, InputSource.MOVIE
 CAMERA_INDEX = 0                            # Camera index. 0 for default camera (usually built-in), 1 for external camera, etc.
+MOVIE_PATH = "res/movies/windraeder_segelboot.MOV" # Path to movie file (relative to project root)
+LOOP_MOVIE = True                           # Whether to loop the movie when it ends
+CONFIDENCE = 0.5
 # ***********************************************************
 
 def detect_device():
@@ -68,19 +81,21 @@ def setup_inference():
         if device == InferenceDevice.NVIDIA_GPU:
             if YOLO_MODEL_SIZE == YoloModelSize.YOLO11N:
                 if FP16:
-                    yolo_model_fp = "models/jetson/yolo11n_16fp_gpu.engine"
+                    yolo_model_fp = "models/gpu_engine/yolo11n_16fp_gpu.engine"
                 else:
-                    yolo_model_fp = "models/jetson/yolo11n_32fp_gpu.engine"
+                    yolo_model_fp = "models/gpu_engine/yolo11n_32fp_gpu.engine"
             elif YOLO_MODEL_SIZE == YoloModelSize.YOLO11S:
                 if FP16:
-                    yolo_model_fp = "models/jetson/yolo11s_16fp_gpu.engine"
+                    yolo_model_fp = "models/gpu_engine/yolo11s_16fp_gpu.engine"
                 else:
-                    yolo_model_fp = "models/jetson/yolo11s_32fp_gpu.engine"
+                    yolo_model_fp = "models/gpu_engine/yolo11s_32fp_gpu.engine"
         elif device == InferenceDevice.M1_GPU or device == InferenceDevice.CPU:
             if YOLO_MODEL_SIZE == YoloModelSize.YOLO11N:
-                yolo_model_fp = "models/m1/yolo11n.pt"
+                yolo_model_fp = "models/pytorch/yolo11n.pt"
             elif YOLO_MODEL_SIZE == YoloModelSize.YOLO11S:
-                yolo_model_fp = "models/m1/yolo11s.pt"
+                yolo_model_fp = "models/pytorch/yolo11s.pt"
+            elif YOLO_MODEL_SIZE == YoloModelSize.YOLO11M:
+                yolo_model_fp = "models/pytorch/yolo11m.pt"
     
     # Combine root path with YOLO model file path
     root_dir = Path(__file__).resolve().parent.parent.parent.parent
@@ -95,36 +110,76 @@ def setup_inference():
     return model, device
 
 def continuous_capture_and_inference():
-    """Capture images from the webcam and run inference.
+    """Capture images from the webcam or movie file and run inference.
     """
 
     # Setup model and device
     model, device = setup_inference()
+    
+    # Initialize video capture based on input source
+    if INPUT_SOURCE == InputSource.CAMERA:
+        cap = cv2.VideoCapture(CAMERA_INDEX)
+        if not cap.isOpened():
+            raise RuntimeError(f"Could not open camera with index {CAMERA_INDEX}.")
+        print(f"Using camera input (index: {CAMERA_INDEX})")
+        source_name = "Camera"
+    elif INPUT_SOURCE == InputSource.MOVIE:
+        # Get absolute path to movie file
+        root_dir = Path(__file__).resolve().parent.parent.parent.parent
+        movie_path = (root_dir / MOVIE_PATH).resolve()
         
-    # Initialize webcam
-    cap = cv2.VideoCapture(CAMERA_INDEX)
-    if not cap.isOpened():
-        raise RuntimeError("Could not open webcam.")
+        if not movie_path.exists():
+            raise FileNotFoundError(f"Movie file not found at {movie_path}")
+            
+        cap = cv2.VideoCapture(str(movie_path))
+        if not cap.isOpened():
+            raise RuntimeError(f"Could not open movie file: {movie_path}")
+        print(f"Using movie input: {movie_path}")
+        source_name = "Movie"
+        
+        # Get total frame count for movie looping
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print(f"Movie info: {total_frames} frames at {fps} FPS")
     
     print("Starting continuous capture and inference...")
     print("Press 'q' or 'ESC' in the video window to stop, or Ctrl+C in terminal")
         
     try:
+        frame_count = 0
         while True:
             # Capture frame
             ret, frame = cap.read()
+            
+            # Handle end of movie file
             if not ret:
-                print("Failed to capture frame, retrying...")
-                continue
+                if INPUT_SOURCE == InputSource.MOVIE and LOOP_MOVIE:
+                    print("Movie ended, restarting from beginning...")
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    frame_count = 0
+                    continue
+                elif INPUT_SOURCE == InputSource.MOVIE:
+                    print("Movie ended, stopping...")
+                    break
+                else:
+                    print("Failed to capture frame from camera, retrying...")
+                    continue
+            
+            frame_count += 1
             
             # Run inference
-            results = model(frame, device=device.value)
+            results = model(frame, device=device.value, conf=CONFIDENCE)
 
             # Draw results on frame
             annotated_frame = results[0].plot()
             
+            # Add frame counter for movies
+            if INPUT_SOURCE == InputSource.MOVIE:
+                cv2.putText(annotated_frame, f"Frame: {frame_count}/{total_frames}", 
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            
             # Display the frame with detections
-            cv2.imshow('Neptune Eye - YOLO Detection', annotated_frame)
+            cv2.imshow(f'Neptune Eye - YOLO Detection ({source_name})', annotated_frame)
             
             # Check for exit condition
             key = cv2.waitKey(1) & 0xFF
@@ -141,5 +196,12 @@ def continuous_capture_and_inference():
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    print(f"Neptune Eye")
+    print(f"Neptune Eye - YOLO Object Detection")
+    print(f"Input Source: {INPUT_SOURCE.name}")
+    if INPUT_SOURCE == InputSource.MOVIE:
+        print(f"Movie Path: {MOVIE_PATH}")
+        print(f"Loop Movie: {LOOP_MOVIE}")
+    elif INPUT_SOURCE == InputSource.CAMERA:
+        print(f"Camera Index: {CAMERA_INDEX}")
+    print("-" * 50)
     continuous_capture_and_inference()

@@ -1,0 +1,7 @@
+# Training configuration
+
+epochs: 50                   # Number of training epochs
+imgsz: 640                   # Image size
+batch: 16                    # Batch size
+model: "yolo11s.pt"         # Pretrained model checkpoint
+resume: true                 # Resume training if a previous run exists
