@@ -12,6 +12,7 @@ import cv2
 from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection, YoloModelSize, InferenceDevice
+from utilites import find_project_root
 
 # TODO Move to a config module.
 class InputSource(Enum):
@@ -38,7 +39,7 @@ def continuous_capture_and_inference() -> None:
     """
 
     # Setup the object detection model
-    root_dir = Path(__file__).resolve().parent.parent.parent.parent
+    root_dir = find_project_root()
     model_dir = (root_dir / "models").resolve()
     model = Yolo11ObjectDetection(
         model_dir=model_dir,
@@ -48,48 +49,45 @@ def continuous_capture_and_inference() -> None:
         confidence=CONFIDENCE)
     model.setup()
 
-    # Initialize video capture based on input source
-    if INPUT_SOURCE == InputSource.CAMERA:
-        capture = CameraCapture(camera_index=CAMERA_INDEX)
-    elif INPUT_SOURCE == InputSource.MOVIE:
-        # Get absolute path to movie file
-        movie_path = (root_dir / MOVIE_PATH).resolve()
-        capture = VideoFileCapture(video_path=str(movie_path))
-    capture.open()
-   
-    print("Starting continuous capture and inference...")
-    print("Press 'q' or 'ESC' in the video window to stop, or Ctrl+C in terminal")
+    # Get absolute path to movie file
+    movie_path = (root_dir / MOVIE_PATH).resolve()
+    capture = VideoFileCapture(video_path=str(movie_path))
+    with (CameraCapture(camera_index=CAMERA_INDEX) if INPUT_SOURCE == InputSource.CAMERA 
+        else VideoFileCapture(str(movie_path))) as capture:
+    
+        print("Starting continuous capture and inference...")
+        print("Press 'q' or 'ESC' in the video window to stop, or Ctrl+C in terminal")
 
-    try:
-        while True:
-            # Capture frame
-            success, frame = capture.read()           
+        try:
+            while True:
+                # Capture frame
+                success, frame = capture.read()           
 
-            if success and frame is not None:
-                # Run inference
-                results = model.detect(frame)
+                if success and frame is not None:
+                    # Run inference
+                    results = model.detect(frame)
 
-            # Draw results on frame
-            annotated_frame = results[0].plot()
+                # Draw results on frame
+                annotated_frame = results[0].plot()
 
-            # Display the frame with detections
-            cv2.imshow(f'Neptune Eye - YOLO Detection', annotated_frame)
+                # Display the frame with detections
+                cv2.imshow(f'Neptune Eye - YOLO Detection', annotated_frame)
 
-            # Check for exit condition
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27:  # 27 is the Escape key
-                print("Stopping capture and inference...")
-                break
+                # Check for exit condition
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q') or key == 27:  # 27 is the Escape key
+                    print("Stopping capture and inference...")
+                    break
 
-    except KeyboardInterrupt:
-        print("\nInterrupted by user. Stopping capture and inference...")
-    except Exception as e:
-        print(f"Error during capture and inference: {e}")
-        raise
-    finally:
-        # Clean up
-        capture.release()
-        cv2.destroyAllWindows()
+        except KeyboardInterrupt:
+            print("\nInterrupted by user. Stopping capture and inference...")
+        except Exception as e:
+            print(f"Error during capture and inference: {e}")
+            raise
+        finally:
+            # Clean up
+            capture.release()
+            cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     print("\n \

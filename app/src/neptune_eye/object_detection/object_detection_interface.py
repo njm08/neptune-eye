@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 
 class ObjectDetectionInterface(ABC):
     @abstractmethod
-    def setup(self, *args, **kwargs) -> None:
+    def setup(self) -> None:
         """
         Set up the object detection model or environment.
         This method should be called before detect().

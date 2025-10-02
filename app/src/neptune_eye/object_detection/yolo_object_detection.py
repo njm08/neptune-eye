@@ -33,7 +33,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         device (InferenceDevice | None): The device to run inference on. If none is chosen, the implementation will attempt to select the best available device (CUDA, MPS, CPU).
         confidence (float): Confidence threshold for detections. Default is 0.25.
         iou (float): IoU threshold for NMS. Default is 0.45
-        imgsz (int | Tuple[int, int]): Inference image size. Fore square images only one parameter is necessary. Default is 640.
+        image_size (int | Tuple[int, int]): Inference image size. Fore square images only one parameter is necessary. Default is 640.
         half_precision (bool): Whether to use half precision (FP16). Default is False.
     """
 
@@ -55,7 +55,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         self.device = device
         self.confidence = float(confidence)
         self.iou = float(iou)
-        self.imgsz = imgsz
+        self.image_size = imgsz
         self.device = self.device
         self.model_path = self.model_path
         self.half_precision = bool(half_precision)
@@ -84,13 +84,21 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
             raise RuntimeError(f"Failed to load YOLO model from {absolute_model_path}: {e}") from e
         
     def detect(self, frame: Any) -> List:
-        """
-       
+        """ Detect objects in the given frame.
+
+        Args:
+            frame (Any): The input frame for object detection.
+
+        Raises:
+            RuntimeError: If the model is not set up before.
+
+        Returns:
+            List: The detection results.
         """
         if self._model is None:
             raise RuntimeError("Model not set up. Call setup() before detect().")
 
-        results = self._model(frame, device=self.device.value, conf=self.confidence, half=self.half_precision)
+        results = self._model(frame, device=self.device.value, conf=self.confidence, half=self.half_precision, imgsz=self.image_size, iou=self.iou)
 
         return results
 
