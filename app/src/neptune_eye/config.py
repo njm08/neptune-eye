@@ -84,9 +84,45 @@ def _map_input_source(source_str: str) -> InputSource:
     return source_mapping[source_str]
 
 
+def _create_default_config_content() -> str:
+    """Create default configuration file content."""
+    content = """# Neptune Eye Configuration
+# This file contains all configuration parameters for the Neptune Eye object detection system
+
+# YOLO Model Configuration
+model:
+  size: "YOLO11S"                    # Options: YOLO11N, YOLO11S, YOLO11M
+  fp16: false                        # True to use FP16 precision for better performance
+  confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
+  iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
+  image_size: 640                    # Input image size for YOLO model
+  override_model_path: null          # Custom model path (null to use default), e.g., "models/pytorch/yolo11s_maritime_15.pt"
+  override_device: null              # Options: null (auto-detect), "NVIDIA_GPU", "M1_GPU", "CPU"
+
+# Input Source Configuration
+input:
+  source: "CAMERA"                    # Options: "CAMERA", "MOVIE"
+  camera_index: 0                     # Camera index (0 for default/built-in, 1+ for external cameras)
+  movie_path: None                    # Absolute path to movie file
+"""
+    return content
+
+
+def _create_default_config_file(config_path: Path) -> None:
+    """Create a default configuration file at the specified path."""
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(_create_default_config_content())
+        print(f"Created default configuration file: {config_path}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to create default configuration file {config_path}: {e}")
+
+
 def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
     """
     Load Neptune Eye configuration from YAML file.
+    Creates a default configuration file if none exists.
     
     Args:
         config_path: Path to config file. If None, uses default config.yaml in project root.
@@ -95,16 +131,18 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
         NeptuneEyeConfig: Parsed and validated configuration object.
         
     Raises:
-        FileNotFoundError: If config file doesn't exist.
         yaml.YAMLError: If config file has invalid YAML syntax.
         ValueError: If config values are invalid.
+        RuntimeError: If unable to create default configuration file.
     """
     if config_path is None:
         root_dir = find_project_root()
         config_path = root_dir / "config.yaml"
     
     if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        print(f"Configuration file not found at {config_path}")
+        print(f"Creating default configuration file...")
+        _create_default_config_file(config_path)
     
     try:
         with open(config_path, "r", encoding="utf-8") as f:
