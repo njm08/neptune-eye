@@ -51,11 +51,11 @@ def continuous_capture_and_inference() -> None:
             while True:
                 # Capture frame
                 success, frame = capture.read()           
-
-                if success and frame is not None:
-                    # Run inference
-                    results = model.detect(frame)
-
+                if not success or frame is None:
+                   continue # This skips to the next iteration of the loop
+                
+                # Run inference
+                results = model.detect(frame)
                 # Draw results on frame
                 annotated_frame = results[0].plot()
 

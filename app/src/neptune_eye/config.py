@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 """
 Configuration module for Neptune Eye
 
 This module handles loading and validating configuration from YAML files.
 """
+from logging import config
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
@@ -37,7 +37,7 @@ class InputConfig:
     """Input source configuration parameters."""
     source: InputSource
     camera_index: int
-    movie_path: str
+    movie_path: Optional[str]
 
 @dataclass
 class NeptuneEyeConfig:
@@ -103,7 +103,7 @@ model:
 input:
   source: "CAMERA"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                     # Camera index (0 for default/built-in, 1+ for external cameras)
-  movie_path: None                    # Absolute path to movie file
+  movie_path: null                    # Absolute path to movie file
 """
     return content
 
@@ -198,11 +198,11 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     
     # Validate IoU threshold
     if not 0.0 <= config.model.iou_threshold <= 1.0:
-        raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {config.performance.iou_threshold}")
+        raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {config.model.iou_threshold}")
     
     # Validate image size
     if config.model.image_size <= 0:
-        raise ValueError(f"Image size must be positive, got {config.performance.image_size}")
+        raise ValueError(f"Image size must be positive, got {config.model.image_size}")
     
     # Validate camera index
     if config.input.camera_index < 0:
@@ -217,6 +217,8 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     
     # Validate movie path if using movie input
     if config.input.source == InputSource.MOVIE:
+        if not config.input.movie_path:
+            raise ValueError("Movie path must be set when input source is MOVIE")
         root_dir = find_project_root()
         movie_path = root_dir / config.input.movie_path
         if not movie_path.exists():
