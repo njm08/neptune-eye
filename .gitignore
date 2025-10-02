@@ -1,6 +1,9 @@
 # MAC
 .DS_Store
 
+# Configuration file. If not present it is auto generated with default values.
+config.yaml
+
 # Training data
 training/data/**
 runs/**

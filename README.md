@@ -36,3 +36,7 @@ docker-compose up -d --build
 # Stop the container
 docker-compose down
 ```
+
+## Configuration
+
+Neptune Eye uses a YAML configuration file to customize its behavior. The application will automatically create a `config.yaml` file with default settings when first run.
