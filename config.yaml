@@ -1,0 +1,18 @@
+# Neptune Eye Configuration
+# This file contains all configuration parameters for the Neptune Eye object detection system
+
+# YOLO Model Configuration
+model:
+  size: "YOLO11M"                    # Options: YOLO11N, YOLO11S, YOLO11M
+  fp16: false                        # True to use FP16 precision for better performance
+  override_model_path: null          # Custom model path (null to use default), e.g., "models/pytorch/yolo11s_maritime_15.pt"
+  confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
+  image_size: 640                    # Input image size for YOLO model
+  iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
+  override_device: null              # Options: null (auto-detect), "NVIDIA_GPU", "M1_GPU", "CPU"                 
+
+# Input Source Configuration
+input:
+  source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
+  camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
+  movie_path: "../neptune_add_ons/windraeder_segelboot.MOV"  # Path to movie file (relative to project root)
