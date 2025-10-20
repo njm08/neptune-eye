@@ -1,7 +1,9 @@
 # Training configuration
 
-epochs: 50                   # Number of training epochs
+epochs: 1                   # Number of training epochs
 imgsz: 640                   # Image size
-batch: 16                    # Batch size
-model: "yolo11s.pt"         # Pretrained model checkpoint
+batch: 2                    # Batch size
+model: "yolo11n.pt"         # Pretrained model checkpoint
+data: "/Users/niklasmeier/Projects/neptune_eye_data/neptune_eye/data.yaml"  # Path to dataset configuration
 resume: true                 # Resume training if a previous run exists
+lr0: 0.001                   # Initial learning rate (low to avoid forgetting pre-trained classes)

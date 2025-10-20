@@ -6,13 +6,14 @@ Written by Claude Sonnet 4.5 agent.
 from pathlib import Path
 import supervision as sv
 
+DATA_DIR = "/Users/niklasmeier/Projects/neptune_eye_data/neptune_eye"
 PERCENTAGE_TRAIN = 0.7 # Percentage of data to be used for training set
 # The remaining 30% will be split equally between validation and test sets.
 
 # If you have yolo-format dataset already on the system
 root = Path(__file__).parent.parent.resolve()
 print(root)
-data_dir = (root / "training" / "data" / "neptune_eye_data").resolve()
+data_dir = Path(DATA_DIR).resolve()
 image_dir = (data_dir / "all" / "images").resolve()
 labels_dir = (data_dir / "all" / "labels").resolve()
 yaml_path = (data_dir / "data.yaml").resolve()

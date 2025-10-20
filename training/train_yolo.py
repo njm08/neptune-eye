@@ -39,13 +39,14 @@ def main():
     model = YOLO(config["model"])
 
     # Train
-    data_yaml_path = (root_dir / "training/data/data.yaml").resolve()
+    data_yaml_path = (root_dir / config["data"]).resolve()
     results = model.train(
         data=data_yaml_path,
         epochs=config["epochs"],
         imgsz=config["imgsz"],
         batch=config["batch"],
         device=device,
+        lr0=config.get("lr0", 0.01),  # Use configured learning rate or default to 0.01
     )
 
     # Validate after training
