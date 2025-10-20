@@ -28,7 +28,7 @@ def main():
     # Load config
     root_dir = Path(__file__).resolve().parent.parent
     print(root_dir)
-    config_path = (root_dir / "training/config.yaml").resolve()
+    config_path = (root_dir / "training/training_config.yaml").resolve()
     config = load_config(config_path)
 
     # Detect device
