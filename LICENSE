@@ -19,3 +19,46 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+================================================================================
+
+THIRD-PARTY COMPONENTS
+
+This project incorporates or depends upon the following third-party components:
+
+--------------------------------------------------------------------------------
+COCO Dataset
+--------------------------------------------------------------------------------
+This project uses the COCO (Common Objects in Context) dataset.
+
+COCO Dataset License:
+The COCO dataset is licensed under the Creative Commons Attribution 4.0 License.
+For more information, visit: https://cocodataset.org/#termsofuse
+
+--------------------------------------------------------------------------------
+Ultralytics YOLO11
+--------------------------------------------------------------------------------
+This project uses YOLO11 (You Only Look Once) from Ultralytics.
+
+Ultralytics License:
+Ultralytics YOLO is licensed under the GNU Affero General Public License v3.0 
+(AGPL-3.0). For commercial use, a commercial license is available.
+For more information, visit: https://github.com/ultralytics/ultralytics
+
+NOTE: While this project (neptune-eye) is licensed under MIT, the use of 
+Ultralytics YOLO11 is subject to AGPL-3.0 terms. Users must comply with 
+AGPL-3.0 requirements when using or distributing this software.
+
+--------------------------------------------------------------------------------
+Label Studio
+--------------------------------------------------------------------------------
+This project uses Label Studio for data annotation.
+
+Label Studio License:
+Label Studio is licensed under the Apache License 2.0.
+For more information, visit: https://github.com/heartexlabs/label-studio
+
+================================================================================
+
+For the full text of the respective licenses, please refer to the official 
+repositories and documentation of each component.
