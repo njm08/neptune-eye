@@ -57,7 +57,6 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         self.iou = float(iou)
         self.image_size = imgsz
         self.device = self.device
-        self.model_path = self.model_path
         self.half_precision = bool(half_precision)
         self._model = None
 
@@ -73,7 +72,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         self.model_path = self._set_model_path()
 
         # Combine root path with YOLO model file path
-        absolute_model_path = (Path(self.model_path)).resolve()
+        absolute_model_path = (Path(self.model_dir) / Path(self.model_path)).resolve()
         # Load the model
         if not absolute_model_path.exists():
             raise FileNotFoundError(f"Model not found at {absolute_model_path}.")

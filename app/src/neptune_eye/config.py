@@ -211,7 +211,7 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     # Validate model path if provided
     if config.model.override_model_path is not None:
         root_dir = find_project_root()
-        model_path = root_dir / config.model.override_model_path
+        model_path = root_dir / "models" / config.model.override_model_path
         if not model_path.exists():
             raise ValueError(f"Override model path does not exist: {model_path}")
     
