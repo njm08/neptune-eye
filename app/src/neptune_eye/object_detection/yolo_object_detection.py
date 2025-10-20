@@ -73,7 +73,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         self.model_path = self._set_model_path()
 
         # Combine root path with YOLO model file path
-        absolute_model_path = (Path(self.model_dir) / Path(self.model_path)).resolve()
+        absolute_model_path = (Path(self.model_path)).resolve()
         # Load the model
         if not absolute_model_path.exists():
             raise FileNotFoundError(f"Model not found at {absolute_model_path}.")
