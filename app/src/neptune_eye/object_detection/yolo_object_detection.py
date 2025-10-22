@@ -31,7 +31,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         device (InferenceDevice | None): The device to run inference on. If none is chosen, the implementation will attempt to select the best available device (CUDA, MPS, CPU).
         confidence (float): Confidence threshold for detections. Default is 0.25.
         iou (float): IoU threshold for NMS. Default is 0.45
-        image_size (int | Tuple[int, int]): Inference image size. For square images only one parameter is necessary. Default is 640.
+        imgsz (int | Tuple[int, int]): Inference image size. For square images only one parameter is necessary. Default is 640.
         half_precision (bool): Whether to use half precision (FP16). Default is False.
     """
 

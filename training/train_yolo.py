@@ -39,7 +39,7 @@ def main():
     model = YOLO(config["model"])
 
     # Train
-    data_yaml_path = (root_dir / config["data"]).resolve()
+    data_yaml_path = (Path.home() / config["data"]).resolve()
     results = model.train(
         data=data_yaml_path,
         epochs=config["epochs"],

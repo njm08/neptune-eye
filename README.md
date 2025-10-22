@@ -1,6 +1,6 @@
 # Neptune Eye
 
-You are cruising on your sailboat for hours in the vast blue see.\
+You are cruising on your sailboat for hours in the vast blue sea.\
 You haven't seen a boat for a while.\
 You go under deck and make yourself a snack.\
 You come back to the cockpit and a boat passes you a lot closer than you are comfortable with.\

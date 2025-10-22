@@ -17,7 +17,7 @@ from typing import Dict
 # ============================================================================
 
 # Directory containing the label files (.txt)
-LABELS_DIR = "/Users/niklasmeier/Projects/neptune_eye_data/buoy_yolov11/labels"
+LABELS_DIR = Path.home() / "Projects/neptune_eye_data/buoy_yolov11/labels"
 
 # Class mapping: {old_class_id: new_class_id}
 # Example: {0: 1} remaps all class 0 to class 1

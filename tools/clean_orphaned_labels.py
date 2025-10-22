@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 # Static configuration
-DATASET_BASE = "/Users/niklasmeier/Projects/neptune_eye_data/coco_boats"
+DATASET_BASE = Path.home() / "Projects/neptune_eye_data/coco_boats"
 IMAGES_FOLDER = "images"
 LABELS_FOLDER = "labels"
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"]
