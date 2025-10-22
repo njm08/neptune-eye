@@ -30,13 +30,13 @@ def continuous_capture_and_inference() -> None:
     print(f"   Confidence: {config.model.confidence}")
 
     # Setup the object detection model
-    model_dir = (root_dir / "models").resolve()
     model = Yolo11ObjectDetection(
-        model_dir=model_dir,
-        model_size=config.model.size,
-        model_path=config.model.override_model_path,
+        model_path=config.model.resolved_model_path,
         device=config.model.override_device,
-        confidence=config.model.confidence)
+        confidence=config.model.confidence,
+        iou=config.model.iou_threshold,
+        imgsz=config.model.image_size,
+        half_precision=config.model.fp16)
     model.setup()
 
     # Get absolute path to movie file

@@ -13,6 +13,7 @@ import yaml
 
 from object_detection.yolo_object_detection import YoloModelSize, InferenceDevice
 from utilites import find_project_root
+import torch
 
 
 class InputSource(Enum):
@@ -31,6 +32,7 @@ class ModelConfig:
     confidence: float
     image_size: int
     iou_threshold: float
+    resolved_model_path: Optional[str] = None  # Will be populated during config loading
 
 @dataclass
 class InputConfig:
@@ -82,6 +84,95 @@ def _map_input_source(source_str: str) -> InputSource:
     if source_str not in source_mapping:
         raise ValueError(f"Invalid input source: {source_str}. Must be one of {list(source_mapping.keys())}")
     return source_mapping[source_str]
+
+
+def _detect_best_device() -> InferenceDevice:
+    """Detect the best available device for inference."""
+    if torch.backends.mps.is_available():
+        return InferenceDevice.M1_GPU
+    elif torch.cuda.is_available():
+        return InferenceDevice.NVIDIA_GPU
+    else:
+        return InferenceDevice.CPU
+
+
+def _get_nvidia_gpu_model_path(model_size: YoloModelSize, fp16: bool) -> str:
+    """Get model path for NVIDIA GPU inference."""
+    precision_suffix = "16fp" if fp16 else "32fp"
+    
+    model_paths = {
+        YoloModelSize.YOLO11N: f"engine/neptunen_{precision_suffix}.engine",
+        YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
+        YoloModelSize.YOLO11M: f"engine/neptunem_{precision_suffix}.engine",
+    }
+
+    if model_size not in model_paths:
+        raise ValueError(f"Unsupported model size for NVIDIA GPU: {model_size}")
+    
+    return model_paths[model_size]
+
+
+def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
+    """Get model path for PyTorch inference (M1 GPU or CPU)."""
+    model_paths = {
+        YoloModelSize.YOLO11N: "pytorch/neptunen.pt",
+        YoloModelSize.YOLO11S: "pytorch/neptunes.pt",
+        YoloModelSize.YOLO11M: "pytorch/neptunem.pt",
+    }
+
+    if model_size not in model_paths:
+        raise ValueError(f"Unsupported model size for PyTorch: {model_size}")
+    
+    return model_paths[model_size]
+
+
+def _resolve_model_path(model_config: ModelConfig) -> str:
+    """
+    Resolve the absolute path to the model file based on configuration.
+    
+    Args:
+        model_config: Model configuration containing size, device preferences, etc.
+        
+    Returns:
+        str: Absolute path to the model file.
+        
+    Raises:
+        ValueError: If model configuration is invalid or model file doesn't exist.
+    """
+    # If user specified a custom model path, use it directly
+    if model_config.override_model_path:
+        custom_path = Path(model_config.override_model_path)
+        if custom_path.is_absolute():
+            if not custom_path.exists():
+                raise ValueError(f"Custom model file does not exist: {custom_path}")
+            return str(custom_path)
+        else:
+            # Relative path - resolve from project root
+            project_root = find_project_root()
+            absolute_path = (project_root / custom_path).resolve()
+            if not absolute_path.exists():
+                raise ValueError(f"Custom model file does not exist: {absolute_path}")
+            return str(absolute_path)
+    
+    # Determine device to use
+    device = model_config.override_device or _detect_best_device()
+    
+    # Get relative model path based on device and model size
+    if device == InferenceDevice.NVIDIA_GPU:
+        relative_path = _get_nvidia_gpu_model_path(model_config.size, model_config.fp16)
+    else:
+        relative_path = _get_pytorch_model_path(model_config.size)
+    
+    # Convert to absolute path
+    project_root = find_project_root()
+    models_dir = project_root / "models"
+    absolute_path = (models_dir / relative_path).resolve()
+    
+    if not absolute_path.exists():
+        raise ValueError(f"Model file does not exist: {absolute_path}. "
+                        f"Expected model for {model_config.size.name} on {device.name}")
+    
+    return str(absolute_path)
 
 
 def _create_default_config_content() -> str:
@@ -164,6 +255,9 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
             image_size=int(config_data["model"]["image_size"]),
             iou_threshold=float(config_data["model"]["iou_threshold"])
         )
+        
+        # Resolve the actual model path
+        model_config.resolved_model_path = _resolve_model_path(model_config)
                 
         input_config = InputConfig(
             source=_map_input_source(config_data["input"]["source"]),
