@@ -1,26 +1,33 @@
-# neptune-eye
+# Neptune Eye
 
-You are crusing on your sailboat for hours in the vast blue see. You haven't seen a boat for a while.
-You go under deck and make yourself a snack. You come back to the cockpit and a boat passes you closer than comfortable.
-This scary situation can be prevented by having a camera on your mast and an AI-powered machine vision algorithm constantly looking for hazards,
-so you don't have to!
+You are cruising on your sailboat for hours in the vast blue sea.\
+You haven't seen a boat for a while.\
+You go under deck and make yourself a snack.\
+You come back to the cockpit and a boat passes you a lot closer than you are comfortable with.\
+_Neptune Eye_ prevents these scary situations.
 
-![Neptune Eye Detecting Sailboats](/res/gifs/yolo_sailboat.gif) ![Neptune Eye Detecting Ferry](/res/gifs/yolo_ferry.gif)
+It is an AI-powered object detection system constantly looking out for you and your crew,\
+_so you can relax and stay safe_!
 
-## Goal
+![Neptune Eye Detecting Sailboats](/res/gifs/detection_sailboat_svendborg.gif) ![Neptune Eye Detecting Ferry](/res/gifs/detection_buoys_one.gif)\
+_Neptune Eye detecting other sailboats and buoys_
 
-The goal is to develop a real-time AI-powered boat detection, to warn you from boats in your path.
+## Features
 
-## Project Features
-
-- YOLO (You only look once) object detection running on NVIDIA Jetson Orin Nano with 10 ms inference.
-- YOLO also running on MacBook with 20 ms inference for developing and testing the models.
-- Docker container for seamless integration of the project on your platform.
+- __Real-world data__: Collected onboard a sailboat across varied conditions
+- __Real-time performance__: ~10 ms inference on an NVIDIA Jetson Orin Nano
+- __YOLOv11 models__: Nano, Small, and Medium with FP16/FP32 precision options
+- __Modular__: Different frame sources (camera/video/streaming) detection model easy to change
+- __Easy integration__: Docker containers for easy integration across platforms
 
 ## Coming Soon
 
-- Trained model for detecting boats.
-- Connection of outdoor surveillance camera.
+- Integration of an outdoor surveillance camera
+- Cloud integration for model training, evaluation, and performance tracking
+
+## Follow the Journey
+
+- Blog: <https://njm08.github.io/>
 
 ## Docker Setup
 
@@ -37,6 +44,6 @@ docker-compose up -d --build
 docker-compose down
 ```
 
-## Configuration
+## License
 
-Neptune Eye uses a YAML configuration file to customize its behavior. The application will automatically create a `config.yaml` file with default settings when first run.
+MIT License — see `LICENSE` for details and third‑party notices.

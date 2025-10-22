@@ -18,24 +18,30 @@ def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
     """
     # Load configuration from YAML file
-    config = load_config()
+    root_dir = find_project_root()
+    if root_dir is None:
+        raise RuntimeError("Could not find project root directory")
+    
+    config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
+    if not config_path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    config = load_config(config_path)
     validate_config(config)
     
     print(f"   Configuration loaded successfully")
-    print(f"   Model: {config.model.size.name}, FP16: {config.model.fp16}")
-    print(f"   Device: {config.model.override_device.name if config.model.override_device else 'Auto-detect'}")
     print(f"   Input: {config.input.source.value}")
-    print(f"   Confidence: {config.model.confidence}")
 
-    # Setup the object detection model
-    root_dir = find_project_root()
-    model_dir = (root_dir / "models").resolve()
-    model = Yolo11ObjectDetection(
-        model_dir=model_dir,
-        model_size=config.model.size,
-        model_path=config.model.override_model_path,
-        device=config.model.override_device,
-        confidence=config.model.confidence)
+    try:
+        model = Yolo11ObjectDetection(
+            model_path=config.model.resolved_model_path,
+            device=config.model.override_device,
+            confidence=config.model.confidence,
+            iou=config.model.iou_threshold,
+            imgsz=config.model.image_size,
+            half_precision=config.model.fp16)
+        model.setup()
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
     model.setup()
 
     # Get absolute path to movie file

@@ -2,7 +2,7 @@
 .DS_Store
 
 # Configuration file. If not present it is auto generated with default values.
-config.yaml
+app/src/neptune_eye/neptune_eye_config.yaml
 
 # Training data
 training/data/**

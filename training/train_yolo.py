@@ -28,7 +28,7 @@ def main():
     # Load config
     root_dir = Path(__file__).resolve().parent.parent
     print(root_dir)
-    config_path = (root_dir / "training/config.yaml").resolve()
+    config_path = (root_dir / "training/training_config.yaml").resolve()
     config = load_config(config_path)
 
     # Detect device
@@ -39,13 +39,14 @@ def main():
     model = YOLO(config["model"])
 
     # Train
-    data_yaml_path = (root_dir / "training/data/data.yaml").resolve()
+    data_yaml_path = (Path.home() / config["data"]).resolve()
     results = model.train(
         data=data_yaml_path,
         epochs=config["epochs"],
         imgsz=config["imgsz"],
         batch=config["batch"],
         device=device,
+        lr0=config.get("lr0", 0.01),  # Use configured learning rate or default to 0.01
     )
 
     # Validate after training
