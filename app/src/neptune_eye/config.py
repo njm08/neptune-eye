@@ -96,7 +96,7 @@ model:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
   iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
   image_size: 640                    # Input image size for YOLO model
-  override_model_path: null          # Custom model path (null to use default), e.g., "models/pytorch/yolo11s_maritime_15.pt"
+  override_model_path: null          # Custom model path (null to use default). Absolute path to model file
   override_device: null              # Options: null (auto-detect), "NVIDIA_GPU", "M1_GPU", "CPU"
 
 # Input Source Configuration
@@ -210,8 +210,7 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     
     # Validate model path if provided
     if config.model.override_model_path is not None:
-        root_dir = find_project_root()
-        model_path = root_dir / "models" / config.model.override_model_path
+        model_path = Path(config.model.override_model_path)
         if not model_path.exists():
             raise ValueError(f"Override model path does not exist: {model_path}")
     
@@ -219,7 +218,6 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     if config.input.source == InputSource.MOVIE:
         if not config.input.movie_path:
             raise ValueError("Movie path must be set when input source is MOVIE")
-        root_dir = find_project_root()
-        movie_path = root_dir / config.input.movie_path
+        movie_path = Path(config.input.movie_path)
         if not movie_path.exists():
             raise ValueError(f"Movie file does not exist: {movie_path}")

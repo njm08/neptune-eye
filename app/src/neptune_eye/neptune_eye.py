@@ -18,7 +18,9 @@ def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
     """
     # Load configuration from YAML file
-    config = load_config()
+    root_dir = find_project_root()
+    config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
+    config = load_config(config_path)
     validate_config(config)
     
     print(f"   Configuration loaded successfully")
@@ -28,7 +30,6 @@ def continuous_capture_and_inference() -> None:
     print(f"   Confidence: {config.model.confidence}")
 
     # Setup the object detection model
-    root_dir = find_project_root()
     model_dir = (root_dir / "models").resolve()
     model = Yolo11ObjectDetection(
         model_dir=model_dir,
@@ -79,7 +80,7 @@ def continuous_capture_and_inference() -> None:
             cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    print("\n \
+    print("\n\
                         _._\n \
                           :.\n \
                           : :\n \
