@@ -17,7 +17,7 @@ _Neptune Eye detecting other sailboats and buoys_
 - __Real-world data__: Collected onboard a sailboat across varied conditions
 - __Real-time performance__: ~10 ms inference on an NVIDIA Jetson Orin Nano
 - __YOLOv11 models__: Nano, Small, and Medium with FP16/FP32 precision options
-- __Modular__: Different frame sources (camera/video/streaming) detection model easy to change
+- __Modular__:  Frame sources (camera/video/streaming) and detection model are easy to change
 - __Easy integration__: Docker containers for easy integration across platforms
 
 ## Coming Soon
