@@ -15,6 +15,8 @@ from object_detection.yolo_object_detection import YoloModelSize, InferenceDevic
 from utilites import find_project_root
 import torch
 
+# Default movie path (from root) if none is provided
+DEFAULT_MOVIE_PATH = "res/movies/boat_4.MOV"
 
 class InputSource(Enum):
     """Choose the input source for video processing."""
@@ -125,6 +127,25 @@ def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
     
     return model_paths[model_size]
 
+def _resolve_movie_path(input_config: InputConfig) -> str:
+    """
+    Resolve the absolute path to the movie file based on configuration.
+    
+    Args:
+        input_config: Input configuration
+        
+    Returns:
+        str: Absolute path to the movie file."
+    """
+
+    if input_config.source == InputSource.MOVIE:
+        # If there is no movie path provided, use default sample movie
+        if input_config.movie_path is None:
+            movie_path = Path(find_project_root() / DEFAULT_MOVIE_PATH).resolve()
+        else:
+            movie_path = Path(input_config.movie_path).resolve()
+    
+    return movie_path
 
 def _resolve_model_path(model_config: ModelConfig) -> str:
     """
@@ -187,14 +208,14 @@ model:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
   iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
   image_size: 640                    # Input image size for YOLO model
-  override_model_path: null          # Custom model path (null to use default). Absolute path to model file
-  override_device: null              # Options: null (auto-detect), "NVIDIA_GPU", "M1_GPU", "CPU"
+  override_model_path: null          # Absolute path to model file. If null is set, the best default model with the set size (N, S, M) is used.
+  override_device: null              # Options: null (Device is detected automatically), "NVIDIA_GPU", "M1_GPU", "CPU"
 
 # Input Source Configuration
 input:
-  source: "CAMERA"                    # Options: "CAMERA", "MOVIE"
+  source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                     # Camera index (0 for default/built-in, 1+ for external cameras)
-  movie_path: null                    # Absolute path to movie file
+  movie_path: null                  # Absolute path to movie file. If null is set, a sample video will be used.
 """
     return content
 
@@ -262,8 +283,10 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
         input_config = InputConfig(
             source=_map_input_source(config_data["input"]["source"]),
             camera_index=int(config_data["input"]["camera_index"]),
-            movie_path=str(config_data["input"]["movie_path"])
+            movie_path=(config_data["input"]["movie_path"])
         )
+
+        input_config.movie_path = resolve_movie_path = _resolve_movie_path(input_config)
         
         return NeptuneEyeConfig(
             model=model_config,
@@ -310,8 +333,6 @@ def validate_config(config: NeptuneEyeConfig) -> None:
     
     # Validate movie path if using movie input
     if config.input.source == InputSource.MOVIE:
-        if not config.input.movie_path:
-            raise ValueError("Movie path must be set when input source is MOVIE")
         movie_path = Path(config.input.movie_path)
         if not movie_path.exists():
             raise ValueError(f"Movie file does not exist: {movie_path}")
