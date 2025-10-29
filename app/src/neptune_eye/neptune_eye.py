@@ -42,7 +42,6 @@ def continuous_capture_and_inference() -> None:
         model.setup()
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
-    model.setup()
 
     # Get absolute path to movie file
     movie_path = (root_dir / config.input.movie_path).resolve()
