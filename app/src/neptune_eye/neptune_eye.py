@@ -17,19 +17,17 @@ from utilites import find_project_root
 def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
     """
-    # Load configuration from YAML file
+    
+    # Find project root directory
     root_dir = find_project_root()
     if root_dir is None:
         raise RuntimeError("Could not find project root directory")
     
+    # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
     config = load_config(config_path)
     validate_config(config)
-    
     print(f"   Configuration loaded successfully")
-    print(f"   Input: {config.input.source.value}")
 
     try:
         model = Yolo11ObjectDetection(
