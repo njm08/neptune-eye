@@ -29,21 +29,29 @@ _Neptune Eye detecting other sailboats and buoys_
 
 - Blog: <https://njm08.github.io/>
 
-## Docker Setup
+## Docker
 
-This project is configured to run in a Docker container. Here are the different ways to run it:
+The application can be run in Docker images. This way you do not need to install the dependencies locally.
+There are two Docker images provided. They are based on the Docker images provided by _Ultralytics_.
 
-```bash
-# Build and run the container
-docker-compose up --build
+- __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support.
 
-# Run in detached mode
-docker-compose up -d --build
-
-# Stop the container
-docker-compose down
+```shell
+python3 tools/docker/build_docker_jetpack6.py
 ```
 
+- __General Arm64__: General image for running on ARM64 architectures such as Mac M1 or Raspberry Pi.
+
+```shell
+python3 tools/docker/build_docker_arm64.py
+```
+
+__Limitations__:
+
+- GUI is not supported when running in Docker image. Use the default headless mode.
+- No GPU support for Mac when running in Docker container. For GPU support you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
+
+  
 ## License
 
 MIT License — see `LICENSE` for details and third‑party notices.
