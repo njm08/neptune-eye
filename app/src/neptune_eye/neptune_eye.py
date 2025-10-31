@@ -62,7 +62,8 @@ def continuous_capture_and_inference() -> None:
                 exit_display = result_display.display(frame, results)
                 if exit_display:
                     break
-
+        except KeyboardInterrupt:
+            print("Interrupted by user. Exiting...")
         except Exception as e:
             print(f"Error during capture and inference: {e}")
             raise
