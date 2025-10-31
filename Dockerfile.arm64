@@ -1,0 +1,22 @@
+# Use Python 3.11 slim image as base
+FROM ultralytics/ultralytics:latest-arm64
+
+RUN pip install lap
+
+# Copy the application files
+COPY /app /app
+COPY /models /models
+COPY /res/movies /res/movies
+COPY LICENSE /
+
+
+# Set working directory
+WORKDIR /app/src/neptune_eye
+
+# Create a non-root user for security
+# RUN groupadd -r appuser && useradd -r -g appuser appuser
+# RUN chown -R appuser:appuser /app
+# USER appuser
+
+# Run the python script
+CMD ["python", "neptune_eye.py"]
