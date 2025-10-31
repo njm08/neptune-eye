@@ -44,10 +44,16 @@ class InputConfig:
     movie_path: Optional[str]
 
 @dataclass
+class DisplayConfig:
+    """Display configuration parameters."""
+    headless: bool
+
+@dataclass
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
     model: ModelConfig
     input: InputConfig
+    display: DisplayConfig
 
 
 def _map_model_size(size_str: str) -> YoloModelSize:
@@ -224,6 +230,10 @@ input:
   source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
   movie_path: null                   # Path to movie file. Can be relative to root or absolute. If null is set, a sample video will be used.
+
+# Display Configuration
+display:
+  headless: true                     # True to run without showing images (headless mode), False to display images
 """
     return content
 
@@ -296,9 +306,14 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
 
         input_config.movie_path = resolve_movie_path = _resolve_movie_path(input_config)
         
+        display_config = DisplayConfig(
+            headless=bool(config_data["display"]["headless"])
+        )
+        
         return NeptuneEyeConfig(
             model=model_config,
             input=input_config,
+            display=display_config
         )
         
     except KeyError as e:

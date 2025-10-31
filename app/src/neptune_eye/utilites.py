@@ -17,6 +17,6 @@ def find_project_root() -> Path:
     """
     current = Path(__file__)
     for parent in [current] + list(current.parents):
-        if (parent / "Dockerfile").exists():
+        if (parent / "LICENSE").exists():
             return parent
     raise FileNotFoundError("Could not locate project root")
