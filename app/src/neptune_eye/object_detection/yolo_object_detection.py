@@ -69,7 +69,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
             raise FileNotFoundError(f"Model not found at {model_path}.")
         
         try:
-            self._model = YOLO(model_path, task='detect')
+            self._model = YOLO(model_path)
         except Exception as e:
             raise RuntimeError(f"Failed to load YOLO model from {model_path}: {e}") from e
         
@@ -88,7 +88,7 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         if self._model is None:
             raise RuntimeError("Model not set up. Call setup() before detect().")
 
-        results = self._model(frame, device=self.device.value, conf=self.confidence, half=self.half_precision, imgsz=self.image_size, iou=self.iou)
+        results = self._model.track(frame, device=self.device.value, conf=self.confidence, half=self.half_precision, imgsz=self.image_size, iou=self.iou, verbose=False)
 
         return results
 
