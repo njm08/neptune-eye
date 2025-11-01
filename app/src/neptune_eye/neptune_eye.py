@@ -13,24 +13,24 @@ from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
 from config import load_config, validate_config, InputSource
 from utilites import find_project_root
+from result_display import ResultDisplay
 
 def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
     """
-    # Load configuration from YAML file
+    
+    # Find project root directory
     root_dir = find_project_root()
     if root_dir is None:
         raise RuntimeError("Could not find project root directory")
     
+    # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
     config = load_config(config_path)
     validate_config(config)
-    
     print(f"   Configuration loaded successfully")
-    print(f"   Input: {config.input.source.value}")
 
+    # Initialize the YOLO model
     try:
         model = Yolo11ObjectDetection(
             model_path=config.model.resolved_model_path,
@@ -42,17 +42,16 @@ def continuous_capture_and_inference() -> None:
         model.setup()
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
-    model.setup()
 
-    # Get absolute path to movie file
+    # Initialize the input source (camera or movie file) and the result display (GUI or console)
     movie_path = (root_dir / config.input.movie_path).resolve()
-    
-    with (CameraCapture(camera_index=config.input.camera_index) if config.input.source == InputSource.CAMERA 
-        else VideoFileCapture(str(movie_path))) as capture:
-    
-        print("Starting continuous capture and inference...")
-        print("Press 'q' or 'ESC' in the video window to stop, or Ctrl+C in terminal")
+    with (CameraCapture(camera_index=config.input.camera_index) 
+          if config.input.source == InputSource.CAMERA 
+          else VideoFileCapture(str(movie_path))) as capture, \
+          ResultDisplay(headless=config.display.headless) as result_display:   
 
+        # Enter continuous capture and inference loop
+        print("Starting continuous capture and inference...")
         try:
             while True:
                 # Capture frame
@@ -62,49 +61,42 @@ def continuous_capture_and_inference() -> None:
                 
                 # Run inference
                 results = model.detect(frame)
-                # Draw results on frame
-                annotated_frame = results[0].plot()
-
-                # Display the frame with detections
-                cv2.imshow("Neptune Eye", annotated_frame)
-
-                # Check for exit condition
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q') or key == 27:  # 27 is the Escape key
-                    print("Stopping capture and inference...")
+                # Display results
+                exit_display = result_display.display(frame, results)
+                if exit_display:
                     break
-
         except KeyboardInterrupt:
-            print("\nInterrupted by user. Stopping capture and inference...")
+            print("Interrupted by user. Exiting...")
         except Exception as e:
             print(f"Error during capture and inference: {e}")
             raise
         finally:
-            # Clean up
-            capture.release()
-            cv2.destroyAllWindows()
+            # Resources cleanup is handled by context managers
+            pass
 
 if __name__ == "__main__":
-    print("\n \
-                        _._\n \
-                          :.\n \
-                          : :\n \
-                          :  .\n \
-                         .:   :\n \
-                        : :    .\n \
-                       :  :     :\n \
-                      .   :      .\n \
-                     :    :       :\n \
-                    :     :        .\n \
-                   .      :         :\n \
-                  :       :          .\n \
-                 :        :           :\n \
-                .=w=w=w=w=:            .\n \
-                          :=w=w=w=w=w=w=.   ....\n \
-           <--._______:U~~~~~~~~\_________.:---/\n \
-            \      ____===================____/\n \
-.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.\n \
-.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.\n")
-    print(f"Neptune Eye - YOLO Object Detection\n\n")
-
+    print(
+        r"""
+                        _._
+                          :.
+                          : :
+                          :  .
+                         .:   :
+                        : :    .
+                       :  :     :
+                      .   :      .
+                     :    :       :
+                    :     :        .
+                   .      :         :
+                  :       :          .
+                 :        :           :
+                .=w=w=w=w=:            .
+                          :=w=w=w=w=w=w=.   ....
+           <--._______:U~~~~~~~~\_________.:---/
+            \      ____===================____/
+.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.
+.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.,-~^~-,.
+"""
+    )
+    print("Neptune Eye - YOLO Object Detection\n\n")
     continuous_capture_and_inference()
