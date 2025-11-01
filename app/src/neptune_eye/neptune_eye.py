@@ -13,7 +13,7 @@ from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
 from config import load_config, validate_config, InputSource
 from utilites import find_project_root
-from display_results import ResultDisplay
+from result_display import ResultDisplay
 
 def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
@@ -30,6 +30,7 @@ def continuous_capture_and_inference() -> None:
     validate_config(config)
     print(f"   Configuration loaded successfully")
 
+    # Initialize the YOLO model
     try:
         model = Yolo11ObjectDetection(
             model_path=config.model.resolved_model_path,
@@ -42,12 +43,14 @@ def continuous_capture_and_inference() -> None:
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
-    result_display = ResultDisplay(headless=config.display.headless)
-    # Initialize the input source (camera or movie file)
+    # Initialize the input source (camera or movie file) and the result display (GUI or console)
     movie_path = (root_dir / config.input.movie_path).resolve()
-    with (CameraCapture(camera_index=config.input.camera_index) if config.input.source == InputSource.CAMERA 
-        else VideoFileCapture(str(movie_path))) as capture:   
+    with (CameraCapture(camera_index=config.input.camera_index) 
+          if config.input.source == InputSource.CAMERA 
+          else VideoFileCapture(str(movie_path))) as capture, \
+          ResultDisplay(headless=config.display.headless) as result_display:   
 
+        # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")
         try:
             while True:
@@ -68,9 +71,8 @@ def continuous_capture_and_inference() -> None:
             print(f"Error during capture and inference: {e}")
             raise
         finally:
-            # Clean up
-            capture.release()
-            cv2.destroyAllWindows()
+            # Resources cleanup is handled by context managers
+            pass
 
 if __name__ == "__main__":
     print(

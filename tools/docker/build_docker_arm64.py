@@ -4,6 +4,7 @@ Build Docker image for arm64 architecture.
 
 import subprocess
 import os
+from enum import Enum
 
 from root_dir import find_project_root
 

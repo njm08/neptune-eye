@@ -20,10 +20,19 @@ class ResultDisplay:
         self.previous_line_count = 0
         self.last_detection_time = None
         if self.headless: 
-            print("Running in headless mode. Press Ctrl+C in terminal to stop.")   
+            print("Press Ctrl+C in terminal to stop.")   
         else:
-            print("Press 'q' or 'ESC' in the video window to stop.")
+            print("Press 'q' or 'ESC' in the video window or Ctrl+C in terminal to stop.")
 
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager and release resources."""
+        self.release()
+        return False
+    
     def display(self, frame: any, results: any) -> bool:
         """Display the given frame with detection results.
 
@@ -92,3 +101,10 @@ class ResultDisplay:
             exit = True
 
         return exit
+    
+    def release(self) -> None:
+        """Close all window resources.
+        """
+        if self.headless:
+            cv2.destroyAllWindows()
+        print("ResultDisplay resources released.")

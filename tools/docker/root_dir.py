@@ -6,7 +6,7 @@ from pathlib import Path
 def find_project_root() -> Path:
     """Find the root directory of the project.
 
-    Use a marker in the root directory to identify it. Here we use 'Dockerfile'.
+    Use a marker in the root directory to identify it. Here we use 'LICENSE'.
     We start searching from the current file's directory and move upwards.
 
     Raises:

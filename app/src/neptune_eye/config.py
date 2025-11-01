@@ -304,7 +304,7 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
             movie_path=(config_data["input"]["movie_path"])
         )
 
-        input_config.movie_path = resolve_movie_path = _resolve_movie_path(input_config)
+        input_config.movie_path = _resolve_movie_path(input_config)
         
         display_config = DisplayConfig(
             headless=bool(config_data["display"]["headless"])
