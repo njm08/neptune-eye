@@ -14,11 +14,11 @@ Note:   For the best performance on NVIDIA GPU use a TensorRT (.engine) model an
 """
 
 # *****************  Configuration  ************************
-YOLO_MODEL_NAME = "yolo11s.pt"  # Pre-trained model file
-YOLO_EXPORT_NAME = "yolo11s_16fp_gpu"    # Name without extension
+YOLO_MODEL_NAME = "/home/njm08/Projects/neptune-eye/models/pytorch/neptunes.pt"  # Pre-trained model file
+YOLO_EXPORT_NAME = "neptunes_32fp_gpu"    # Name without extension
 EXPORT_FORMAT = "engine"          # Options: 'onnx', 'engine'
 DEVICE='0'                    # 'cpu' for CPU, '0' for GPU, 'mps' for Mac
-HALF=True                      # True, use FP16 precision
+HALF=False                      # True, use FP16 precision
 # ***********************************************************
 
 def export_model(model_name, export_name, export_format, device, half):
