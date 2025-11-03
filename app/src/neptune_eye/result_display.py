@@ -92,12 +92,17 @@ class ResultDisplay:
 
         # Draw results on frame
         annotated_frame = results[0].plot()
-        cv2.imshow("Neptune Eye", annotated_frame)
-        
-        # Check for exit condition
         exit = False
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q') or key == 27:  # 27 is the Escape key
+        try:
+            cv2.imshow("Neptune Eye", annotated_frame)
+            
+            # Check for exit condition
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q') or key == 27:  # 27 is the Escape key
+                exit = True
+        except cv2.error as e:
+            print(f"OpenCV error during imshow or waitKey: {e}")
+            print(f"Exiting display loop.")
             exit = True
 
         return exit
@@ -107,4 +112,3 @@ class ResultDisplay:
         """
         if self.headless:
             cv2.destroyAllWindows()
-        print("ResultDisplay resources released.")
