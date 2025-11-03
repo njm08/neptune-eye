@@ -2,6 +2,8 @@
 """
 from typing import Tuple, Optional
 from pathlib import Path
+import subprocess
+import json
 
 import cv2
 import numpy as np
@@ -22,6 +24,7 @@ class VideoFileCapture(FrameCaptureInterface):
         self.cap: Optional[cv2.VideoCapture] = None
         self.fps: float = 0.0
         self.total_frames: int = 0
+        self.rotation_code: Optional[int] = None  # Store rotation transformation code
 
     def __del__(self) -> None:
         """Destructor
@@ -36,6 +39,63 @@ class VideoFileCapture(FrameCaptureInterface):
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit."""
         self.release()
+
+    def _get_video_rotation(self) -> Optional[int]:
+        """Extract rotation metadata from the video file using ffprobe.
+        
+        Returns:
+            Optional[int]: OpenCV rotation code (cv2.ROTATE_*) or None if no rotation needed.
+        """
+        try:
+            # Use ffprobe to extract rotation metadata (both tags and side_data)
+            cmd = [
+                'ffprobe',
+                '-loglevel', 'error',
+                '-select_streams', 'v:0',
+                '-show_entries', 'stream_tags=rotate:stream_side_data=rotation',
+                '-of', 'json',
+                str(self.video_path)]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                        
+        except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, FileNotFoundError):
+            # If ffprobe is not available or fails, return None (no rotation)
+            return None
+        
+        data = json.loads(result.stdout)
+        rotation_degrees = None
+        
+        # Extract rotation value from metadata
+        if 'streams' in data and len(data['streams']) > 0:
+            stream = data['streams'][0]
+            
+            # Check for rotation in tags (older format)
+            if 'tags' in stream and 'rotate' in stream['tags']:
+                rotation_degrees = int(stream['tags']['rotate'])
+            
+            # Check for rotation in side_data (newer format, takes precedence)
+            elif 'side_data_list' in stream:
+                for side_data in stream['side_data_list']:
+                    if 'rotation' in side_data:
+                        rotation_degrees = int(side_data['rotation'])
+                        break
+                    
+        rotation_code_open_cv = None
+        if rotation_degrees is not None:
+            # Map rotation degrees to OpenCV rotation codes
+            # Video metadata rotation indicates how much to rotate the video for correct display
+            # Positive values = counterclockwise, Negative values = clockwise
+            rotation_map = {
+                90: cv2.ROTATE_90_COUNTERCLOCKWISE,
+                180: cv2.ROTATE_180,
+                270: cv2.ROTATE_90_CLOCKWISE,
+                -90: cv2.ROTATE_90_CLOCKWISE,
+                -180: cv2.ROTATE_180,
+                -270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+                0: None
+                }
+            rotation_code_open_cv = rotation_map.get(rotation_degrees, None)
+        
+        return rotation_code_open_cv
 
     def open(self) -> None:
         """Open the video file.
@@ -58,7 +118,10 @@ class VideoFileCapture(FrameCaptureInterface):
         
         if self.fps <= 0:
             raise RuntimeError(f"Invalid FPS ({self.fps}) for video {self.video_path}. "
-+                "The video file may be corrupted or use an unsupported format.")
+                "The video file may be corrupted or use an unsupported format.")
+        
+        # Extract rotation metadata
+        self.rotation_code = self._get_video_rotation()
 
 
     def read(self) -> Tuple[bool, Optional[np.ndarray]]:
@@ -76,7 +139,7 @@ class VideoFileCapture(FrameCaptureInterface):
         if not self.is_open:
             raise RuntimeError("Video not opened. Call open() first.")
         success, frame = self.cap.read()
-        
+              
         # Handle end of movie file
         if not success:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -84,7 +147,10 @@ class VideoFileCapture(FrameCaptureInterface):
             if not success:
                 raise RuntimeError(f"Failed to read from video {self.video_path} even after seeking to start. "
                                     "The video file may be corrupted.")
-
+            
+        # Apply rotation to the looped frame as well
+        if success:
+            frame = self._rotate_frame(frame)
 
         return success, frame
 
@@ -106,3 +172,16 @@ class VideoFileCapture(FrameCaptureInterface):
         """
         is_open = self.cap is not None and self.cap.isOpened()
         return is_open
+    
+    def _rotate_frame(self, frame: np.ndarray) -> np.ndarray:
+        """Rotate the given frame based on the rotation code.
+
+        Args:
+            frame (np.ndarray): The frame to rotate.
+
+        Returns:
+            np.ndarray: The rotated frame.
+        """
+        if self.rotation_code is not None and frame is not None:
+            frame = cv2.rotate(frame, self.rotation_code)
+        return frame

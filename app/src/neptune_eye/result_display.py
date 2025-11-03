@@ -107,4 +107,3 @@ class ResultDisplay:
         """
         if self.headless:
             cv2.destroyAllWindows()
-        print("ResultDisplay resources released.")
