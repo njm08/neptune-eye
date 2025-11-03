@@ -6,8 +6,7 @@ This module provides the main entry point for running YOLO object detection on m
 """
 from pathlib import Path
 
-import cv2
-
+from cv2 import __version__ as cv2_version
 from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
@@ -65,7 +64,7 @@ def continuous_capture_and_inference() -> None:
                 if exit_display:
                     break
         except KeyboardInterrupt:
-            print("Interrupted by user. Exiting...")
+            print("Interrupted by user.\nExiting inference.")
         except Exception as e:
             print(f"Error during capture and inference: {e}")
             raise
@@ -98,4 +97,5 @@ if __name__ == "__main__":
 """
     )
     print("Neptune Eye - YOLO Object Detection\n\n")
+    print(f"OpenCV version: {cv2_version}")
     continuous_capture_and_inference()

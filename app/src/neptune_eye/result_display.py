@@ -102,7 +102,6 @@ class ResultDisplay:
                 exit = True
         except cv2.error as e:
             print(f"OpenCV error during imshow or waitKey: {e}")
-            print(f"Exiting display loop.")
             exit = True
 
         return exit
@@ -110,5 +109,5 @@ class ResultDisplay:
     def release(self) -> None:
         """Close all window resources.
         """
-        if self.headless:
+        if not self.headless:
             cv2.destroyAllWindows()
