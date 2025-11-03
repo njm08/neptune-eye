@@ -58,8 +58,18 @@ class VideoFileCapture(FrameCaptureInterface):
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             data = json.loads(result.stdout)
                         
-        except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, FileNotFoundError):
-            # If ffprobe is not available or fails, return None (no rotation)
+        except FileNotFoundError:
+            # ffprobe is not installed
+            print("Warning: ffprobe not found. Video rotation metadata cannot be read.")
+            print("Install FFmpeg to enable automatic video rotation: sudo apt-get install ffmpeg")
+            return None
+        except subprocess.CalledProcessError as e:
+            # ffprobe command failed
+            print(f"Warning: ffprobe failed to read video metadata: {e.stderr}")
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            # Failed to parse ffprobe output
+            print(f"Warning: Failed to parse video metadata: {e}")
             return None
                 
         # Extract rotation value from metadata
@@ -93,6 +103,8 @@ class VideoFileCapture(FrameCaptureInterface):
                 0: None
                 }
             rotation_code_open_cv = rotation_map.get(rotation_degrees, None)
+            if rotation_code_open_cv is not None:
+                print(f"Video rotation detected: {rotation_degrees}° - will be corrected during playback")
         
         return rotation_code_open_cv
 
