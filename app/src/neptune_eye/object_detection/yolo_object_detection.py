@@ -88,7 +88,8 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         if self._model is None:
             raise RuntimeError("Model not set up. Call setup() before detect().")
 
-        results = self._model.track(frame, device=self.device.value, conf=self.confidence, half=self.half_precision, imgsz=self.image_size, iou=self.iou, verbose=True)
+        results = self._model.track(frame, device=self.device.value, conf=self.confidence, 
+                                    half=self.half_precision, imgsz=self.image_size, iou=self.iou, verbose=False)
 
         return results
 
