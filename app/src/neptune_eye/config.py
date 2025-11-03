@@ -44,16 +44,20 @@ class InputConfig:
     movie_path: Optional[str]
 
 @dataclass
-class DisplayConfig:
-    """Display configuration parameters."""
+class GeneralConfig:
+    """General configuration parameters."""
+    confidence: float
     headless: bool
+    source: InputSource
+    camera_index: int
+    movie_path: Optional[str]
 
 @dataclass
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
+    general: GeneralConfig
     model: ModelConfig
     input: InputConfig
-    display: DisplayConfig
 
 
 def _map_model_size(size_str: str) -> YoloModelSize:
@@ -215,25 +219,22 @@ def _create_default_config_content() -> str:
     content = """# Neptune Eye Configuration
 # This file contains all configuration parameters for the Neptune Eye object detection system
 
-# YOLO Model Configuration
-model:
-  size: "YOLO11S"                    # Options: YOLO11N, YOLO11S, YOLO11M
-  fp16: false                        # True to use FP16 precision for better performance
+# General Configuration
+general:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
-  iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
-  image_size: 640                    # Input image size for YOLO model
-  override_model_path: null          # Path to model file. Can be relative to root or absolute. If null, the best model will be used.
-  override_device: null              # Options: null (Device is detected automatically), "NVIDIA_GPU", "M1_GPU", "CPU"
-
-# Input Source Configuration
-input:
+  headless: true                     # True to run without showing images (headless mode), False to display images
   source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
   movie_path: null                   # Path to movie file. Can be relative to root or absolute. If null is set, a sample video will be used.
 
-# Display Configuration
-display:
-  headless: true                     # True to run without showing images (headless mode), False to display images
+# Expert Configuration (Advanced Settings)
+expert:
+  model_size: "YOLO11S"              # Options: YOLO11N, YOLO11S, YOLO11M
+  fp16: false                        # True to use FP16 precision for better performance
+  iou_threshold: 0.45                # IoU threshold for NMS (Non-Maximum Suppression)
+  image_size: 640                    # Input image size for YOLO model
+  override_model_path: null          # Path to model file. Can be relative to root or absolute. If null, the best model will be used.
+  override_device: null              # Options: null (Device is detected automatically), "NVIDIA_GPU", "M1_GPU", "CPU"
 """
     return content
 
@@ -285,35 +286,52 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
     
     # Validate and parse configuration sections
     try:
+        general_config = GeneralConfig(
+            confidence=float(config_data["general"]["confidence"]),
+            headless=bool(config_data["general"]["headless"]),
+            source=_map_input_source(config_data["general"]["source"]),
+            camera_index=int(config_data["general"]["camera_index"]),
+            movie_path=config_data["general"]["movie_path"]
+        )
+        
         model_config = ModelConfig(
-            size=_map_model_size(config_data["model"]["size"]),
-            fp16=bool(config_data["model"]["fp16"]),
-            override_model_path=config_data["model"]["override_model_path"],
-            confidence=float(config_data["model"]["confidence"]),
-            override_device=_map_device(config_data["model"]["override_device"]),
-            image_size=int(config_data["model"]["image_size"]),
-            iou_threshold=float(config_data["model"]["iou_threshold"])
+            size=_map_model_size(config_data["expert"]["model_size"]),
+            fp16=bool(config_data["expert"]["fp16"]),
+            override_model_path=config_data["expert"]["override_model_path"],
+            confidence=float(config_data["general"]["confidence"]),  # Using confidence from general section
+            override_device=_map_device(config_data["expert"]["override_device"]),
+            image_size=int(config_data["expert"]["image_size"]),
+            iou_threshold=float(config_data["expert"]["iou_threshold"])
         )
         
         # Resolve the actual model path
         model_config.resolved_model_path = _resolve_model_path(model_config)
                 
         input_config = InputConfig(
-            source=_map_input_source(config_data["input"]["source"]),
-            camera_index=int(config_data["input"]["camera_index"]),
-            movie_path=(config_data["input"]["movie_path"])
+            source=general_config.source,
+            camera_index=general_config.camera_index,
+            movie_path=general_config.movie_path
         )
 
         input_config.movie_path = _resolve_movie_path(input_config)
         
-        display_config = DisplayConfig(
-            headless=bool(config_data["display"]["headless"])
-        )
+        # Update the movie path in general_config as well
+        general_config.movie_path = input_config.movie_path
+        
+        # Print general configuration
+        print("General Configuration:")
+        print(f"Confidence: {general_config.confidence}")
+        print(f"Headless: {general_config.headless}")
+        print(f"Source: {general_config.source.value}")
+        if general_config.source == InputSource.MOVIE:
+            print(f"Movie Path: {general_config.movie_path}")
+        elif general_config.source == InputSource.CAMERA:
+            print(f"Camera Index: {general_config.camera_index}")
         
         return NeptuneEyeConfig(
+            general=general_config,
             model=model_config,
-            input=input_config,
-            display=display_config
+            input=input_config
         )
         
     except KeyError as e:

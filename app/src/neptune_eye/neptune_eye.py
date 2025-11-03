@@ -28,7 +28,6 @@ def continuous_capture_and_inference() -> None:
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
     config = load_config(config_path)
     validate_config(config)
-    print(f"   Configuration loaded successfully")
 
     # Initialize the YOLO model
     try:
@@ -48,7 +47,7 @@ def continuous_capture_and_inference() -> None:
     with (CameraCapture(camera_index=config.input.camera_index) 
           if config.input.source == InputSource.CAMERA 
           else VideoFileCapture(str(movie_path))) as capture, \
-          ResultDisplay(headless=config.display.headless) as result_display:   
+          ResultDisplay(headless=config.general.headless) as result_display:   
 
         # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")
