@@ -64,7 +64,7 @@ def continuous_capture_and_inference() -> None:
                 if exit_display:
                     break
         except KeyboardInterrupt:
-            print("Interrupted by user.\nExiting inference.")
+            print("Interrupted by user.\nExiting Neptune Eye.")
         except Exception as e:
             print(f"Error during capture and inference: {e}")
             raise
