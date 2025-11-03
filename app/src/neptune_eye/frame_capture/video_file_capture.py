@@ -56,15 +56,14 @@ class VideoFileCapture(FrameCaptureInterface):
                 '-of', 'json',
                 str(self.video_path)]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            data = json.loads(result.stdout)
                         
         except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, FileNotFoundError):
             # If ffprobe is not available or fails, return None (no rotation)
             return None
-        
-        data = json.loads(result.stdout)
-        rotation_degrees = None
-        
+                
         # Extract rotation value from metadata
+        rotation_degrees = None
         if 'streams' in data and len(data['streams']) > 0:
             stream = data['streams'][0]
             
