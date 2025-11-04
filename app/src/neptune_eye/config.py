@@ -39,14 +39,28 @@ class ExpertConfig:
     device: Optional[InferenceDevice]
     model_path: Optional[str]
 
-@dataclass
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
-    general: GeneralConfig
-    expert: ExpertConfig
     
     # Default movie path (from root) if none is provided
     DEFAULT_MOVIE_PATH: str = "res/movies/boat_4.MOV"
+    
+    def __init__(self, config_path: Optional[Path] = None):
+        """
+        Initialize Neptune Eye configuration by loading from YAML file.
+        Creates a default configuration file if none exists.
+        
+        Args:
+            config_path: Path to config file. If None, uses default config.yaml in project root.
+            
+        Raises:
+            yaml.YAMLError: If config file has invalid YAML syntax.
+            ValueError: If config values are invalid.
+            RuntimeError: If unable to create default configuration file.
+        """
+        self.general: Optional[GeneralConfig] = None
+        self.expert: Optional[ExpertConfig] = None
+        self.load(config_path)
     
     @staticmethod
     def _map_model_size(size_str: str) -> YoloModelSize:
@@ -126,20 +140,18 @@ class NeptuneEyeConfig:
         
         return model_paths[model_size]
 
-    @staticmethod
-    def _resolve_movie_path(movie_path: Optional[str], source: InputSource) -> str:
+    def _resolve_movie_path(self, movie_path: Optional[str]) -> str:
         """
         Resolve the absolute path to the movie file based on configuration.
         Supports both absolute paths and relative paths (relative to project root).
         
         Args:
             movie_path: Path to the movie file (can be None)
-            source: Input source type
             
         Returns:
             str: Absolute path to the movie file.
         """
-        if source == InputSource.MOVIE:
+        if self.general.source == InputSource.MOVIE:
             # If there is no movie path provided, use default sample movie
             if movie_path is None:
                 movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH).resolve()
@@ -155,20 +167,13 @@ class NeptuneEyeConfig:
         
         return str(movie_path)
 
-    @staticmethod
-    def _resolve_model_path(user_given_model_path: Optional[str], 
-                            device: InferenceDevice, 
-                            model_size: YoloModelSize, 
-                            fp16: bool) -> str:
+    def _resolve_model_path(self, user_given_model_path: Optional[str]) -> str:
         """
         Resolve the absolute path to the model file. If a user-given path is provided, it is used directly.
         Else, the best model path is determined based on device and model size.
         
         Args:
             user_given_model_path: Optional user-specified model path
-            device: Inference device from configuration
-            model_size: Yolo model size
-            fp16: Whether to use FP16 precision (only relevant for NVIDIA GPU)
             
         Returns:
             str: Absolute path to the model file.
@@ -191,14 +196,11 @@ class NeptuneEyeConfig:
             return_path = str(absolute_path)
 
         else:
-            # Determine device to use
-            device = device
-            
             # Get relative model path based on device and model size
-            if device == InferenceDevice.NVIDIA_GPU:
-                relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(model_size, fp16)
+            if self.expert.device == InferenceDevice.NVIDIA_GPU:
+                relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(self.expert.model_size, self.expert.fp16)
             else:
-                relative_path = NeptuneEyeConfig._get_pytorch_model_path(model_size)
+                relative_path = NeptuneEyeConfig._get_pytorch_model_path(self.expert.model_size)
             
             # Convert to absolute path
             project_root = find_project_root()
@@ -207,7 +209,7 @@ class NeptuneEyeConfig:
             
             if not absolute_path.exists():
                 raise ValueError(f"Model file does not exist: {absolute_path}. "
-                                f"Expected model for {model_size.name} on {device.name}")
+                                f"Expected model for {self.expert.model_size.name} on {self.expert.device.name}")
             
             return_path = str(absolute_path)
         return return_path
@@ -277,17 +279,13 @@ expert:
             if not movie_path.exists():
                 raise ValueError(f"Movie file does not exist: {movie_path}")
 
-    @classmethod
-    def load(cls, config_path: Optional[Path] = None) -> 'NeptuneEyeConfig':
+    def load(self, config_path: Optional[Path] = None) -> None:
         """
         Load Neptune Eye configuration from YAML file.
         Creates a default configuration file if none exists.
         
         Args:
             config_path: Path to config file. If None, uses default config.yaml in project root.
-            
-        Returns:
-            NeptuneEyeConfig: Parsed and validated configuration object.
             
         Raises:
             yaml.YAMLError: If config file has invalid YAML syntax.
@@ -301,7 +299,7 @@ expert:
         if not config_path.exists():
             print(f"Configuration file not found at {config_path}")
             print(f"Creating default configuration file...")
-            cls._create_default_config_file(config_path)
+            self._create_default_config_file(config_path)
         
         try:
             with open(config_path, "r", encoding="utf-8") as f:
@@ -314,56 +312,58 @@ expert:
         
         # Validate and parse configuration sections
         try:
+            # Parse general config (without movie_path, will be set later)
             general_config = GeneralConfig(
                 confidence=float(config_data["general"]["confidence"]),
                 headless=bool(config_data["general"]["headless"]),
-                source=cls._map_input_source(config_data["general"]["source"]),
+                source=self._map_input_source(config_data["general"]["source"]),
                 camera_index=int(config_data["general"]["camera_index"]),
-                movie_path=None # Will be resolved below
+                movie_path=None  # Will be resolved after instance creation
             )
             
+            # Parse expert config (without model_path, will be set later)
             expert_config = ExpertConfig(
-                model_size=cls._map_model_size(config_data["expert"]["model_size"]),
+                model_size=self._map_model_size(config_data["expert"]["model_size"]),
                 fp16=bool(config_data["expert"]["fp16"]),
                 iou_threshold=float(config_data["expert"]["iou_threshold"]),
                 image_size=int(config_data["expert"]["image_size"]),
-                device=cls._map_device(config_data["expert"]["override_device"]) or cls._detect_best_device(),
-                model_path=None # Will be resolved below. First the other settings need to be set.
+                device=self._map_device(config_data["expert"]["override_device"]) or self._detect_best_device(),
+                model_path=None  # Will be resolved after instance creation
             )
-                        
-            # Resolve paths and store in configs
-            expert_config.model_path = cls._resolve_model_path(user_given_model_path=config_data["expert"]["override_model_path"],
-                                                               device=expert_config.device,
-                                                               model_size=expert_config.model_size,
-                                                               fp16=expert_config.fp16)
-            
-            # Handle movie_path: if null in YAML, it becomes None in Python
-            movie_path_value = config_data["general"]["movie_path"]
-            if movie_path_value is not None:
-                movie_path_value = str(movie_path_value)
-            general_config.movie_path = cls._resolve_movie_path(movie_path=movie_path_value, source=general_config.source)
 
         except KeyError as e:
             raise ValueError(f"Missing required configuration key: {e}")
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid configuration value: {e}")
         
-        # Create the instance
-        instance = cls(general=general_config, expert=expert_config)
+        # Set the instance attributes
+        self.general = general_config
+        self.expert = expert_config
+        
+        # Now resolve paths using instance methods (which can access instance members)
+        self.expert.model_path = self._resolve_model_path(
+            user_given_model_path=config_data["expert"]["override_model_path"]
+        )
+        
+        # Handle movie_path: if null in YAML, it becomes None in Python
+        movie_path_value = config_data["general"]["movie_path"]
+        if movie_path_value is not None:
+            movie_path_value = str(movie_path_value)
+        self.general.movie_path = self._resolve_movie_path(movie_path=movie_path_value)
         
         # Validate the final configuration
-        instance._validate()
+        self._validate()
 
         # Print general configuration
+        self._print_config()
+    
+    def _print_config(self) -> None:
+        """Print the configuration to console."""
         print("General Configuration:")
-        print(f"Confidence: {instance.general.confidence}")
-        print(f"Headless: {instance.general.headless}")
-        print(f"Source: {instance.general.source.value}")
-        if instance.general.source == InputSource.MOVIE:
-            print(f"Movie Path: {instance.general.movie_path}")
-        elif instance.general.source == InputSource.CAMERA:
-            print(f"Camera Index: {instance.general.camera_index}")
-        
-        return instance
-        
-
+        print(f"Confidence: {self.general.confidence}")
+        print(f"Headless: {self.general.headless}")
+        print(f"Source: {self.general.source.value}")
+        if self.general.source == InputSource.MOVIE:
+            print(f"Movie Path: {self.general.movie_path}")
+        elif self.general.source == InputSource.CAMERA:
+            print(f"Camera Index: {self.general.camera_index}")
