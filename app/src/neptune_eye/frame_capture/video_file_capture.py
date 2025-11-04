@@ -47,19 +47,30 @@ class VideoFileCapture(FrameCaptureInterface):
             Optional[int]: OpenCV rotation code (cv2.ROTATE_*) or None if no rotation needed.
         """
         try:
-            # Use ffprobe to extract rotation metadata (both tags and side_data)
+            # Use ffprobe to extract rotation metadata (both tags and side_data_list)
+            # Query both stream tags and side_data_list for rotation information
             cmd = [
                 'ffprobe',
                 '-loglevel', 'error',
                 '-select_streams', 'v:0',
-                '-show_entries', 'stream_tags=rotate:stream_side_data=rotation',
+                '-show_entries', 'stream_tags=rotate:stream_side_data_list',
                 '-of', 'json',
                 str(self.video_path)]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             data = json.loads(result.stdout)
                         
-        except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, FileNotFoundError):
-            # If ffprobe is not available or fails, return None (no rotation)
+        except FileNotFoundError:
+            # ffprobe is not installed
+            print("Warning: ffprobe not found. Video rotation metadata cannot be read.")
+            print("Install FFmpeg to enable automatic video rotation: sudo apt-get install ffmpeg")
+            return None
+        except subprocess.CalledProcessError as e:
+            # ffprobe command failed
+            print(f"Warning: ffprobe failed to read video metadata: {e.stderr}")
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            # Failed to parse ffprobe output
+            print(f"Warning: Failed to parse video metadata: {e}")
             return None
                 
         # Extract rotation value from metadata
@@ -67,16 +78,18 @@ class VideoFileCapture(FrameCaptureInterface):
         if 'streams' in data and len(data['streams']) > 0:
             stream = data['streams'][0]
             
-            # Check for rotation in tags (older format)
-            if 'tags' in stream and 'rotate' in stream['tags']:
-                rotation_degrees = int(stream['tags']['rotate'])
-            
-            # Check for rotation in side_data (newer format, takes precedence)
-            elif 'side_data_list' in stream:
+            # Check for rotation in side_data_list first (newer format, preferred)
+            if 'side_data_list' in stream:
                 for side_data in stream['side_data_list']:
                     if 'rotation' in side_data:
-                        rotation_degrees = int(side_data['rotation'])
+                        side_data_rotation = int(side_data['rotation'])
+                        # Use side_data_list rotation value directly (same convention as tags)
+                        rotation_degrees = side_data_rotation
                         break
+            
+            # Check for rotation in tags (older format) - only if not found in side_data_list
+            if rotation_degrees is None and 'tags' in stream and 'rotate' in stream['tags']:
+                rotation_degrees = int(stream['tags']['rotate'])
                     
         rotation_code_open_cv = None
         if rotation_degrees is not None:
@@ -93,6 +106,8 @@ class VideoFileCapture(FrameCaptureInterface):
                 0: None
                 }
             rotation_code_open_cv = rotation_map.get(rotation_degrees, None)
+            if rotation_code_open_cv is not None:
+                print(f"Video rotation detected: {rotation_degrees}° - will be corrected during playback")
         
         return rotation_code_open_cv
 

@@ -14,18 +14,20 @@ Note:   For the best performance on NVIDIA GPU use a TensorRT (.engine) model an
 """
 
 # *****************  Configuration  ************************
-YOLO_MODEL_NAME = "yolo11s.pt"  # Pre-trained model file
-YOLO_EXPORT_NAME = "yolo11s_16fp_gpu"    # Name without extension
-EXPORT_FORMAT = "engine"          # Options: 'onnx', 'engine'
-DEVICE='0'                    # 'cpu' for CPU, '0' for GPU, 'mps' for Mac
-HALF=True                      # True, use FP16 precision
+YOLO_MODEL = "yolov11s.pt"                      # Pre-trained model from ultralytics hub (e.g., 'yolov11s.pt')
+YOLO_MODEL_PATH = "models/pytorch/neptunes.pt"  # Path to the model file to export
+YOLO_EXPORT_NAME = "neptunes_32fp"              # Name without extension
+EXPORT_FORMAT = "engine"                        # Options: 'onnx', 'engine'
+DEVICE = '0'                                      # 'cpu' for CPU, '0' for GPU, 'mps' for Mac
+HALF = False                                      # True, use FP16 precision
 # ***********************************************************
 
-def export_model(model_name, export_name, export_format, device, half):
+def export_model(model_name, model_path, export_name, export_format, device, half):
     """Export a YOLO model to a different format.
 
     Args:
-        model_name (str): The name of the model file to export.
+        model_name (str): The name or path of the model file to export.
+        model_path (str): The path to the model file to export. If given, this will override model_name.
         export_name (str): The name to use for the exported file (without extension).
         export_format (str): The format to export the model to (e.g., 'onnx', 'engine').
         device (str): The device to use for export (e.g., 'cpu', '0', 'mps').
@@ -42,4 +44,4 @@ def export_model(model_name, export_name, export_format, device, half):
     print(f"Model exported as {export_name}{extension}.")
 
 if __name__ == "__main__":
-    export_model(YOLO_MODEL_NAME, YOLO_EXPORT_NAME, EXPORT_FORMAT, DEVICE, HALF)
+    export_model(YOLO_MODEL, YOLO_MODEL_PATH, YOLO_EXPORT_NAME, EXPORT_FORMAT, DEVICE, HALF)
