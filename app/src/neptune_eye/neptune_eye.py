@@ -10,7 +10,7 @@ from cv2 import __version__ as cv2_version
 from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
-from config import load_config, validate_config, InputSource
+from config import NeptuneEyeConfig, InputSource
 from utilites import find_project_root
 from result_display import ResultDisplay
 
@@ -25,14 +25,14 @@ def continuous_capture_and_inference() -> None:
     
     # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
-    config = load_config(config_path)
-    validate_config(config)
+    config = NeptuneEyeConfig.load(config_path)
+    config.validate()
 
     # Initialize the YOLO model
     try:
         model = Yolo11ObjectDetection(
-            model_path=config.expert.resolved_model_path,
-            device=config.expert.override_device,
+            model_path=config.expert.model_path,
+            device=config.expert.device,
             confidence=config.general.confidence,
             iou=config.expert.iou_threshold,
             imgsz=config.expert.image_size,
