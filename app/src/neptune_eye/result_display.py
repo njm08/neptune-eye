@@ -18,14 +18,14 @@ class ResultDisplay:
         Args:
             headless (bool): If True, run in headless mode without displaying images.
         """
-        self.headless = headless
-        self.previous_line_count = 0
-        self.last_detection_time = None
+        self._headless = headless
+        self._previous_line_count = 0
+        self._last_detection_time = None
         self._window_name = "Neptune Eye"
         self._window_initialized = False
-        self._screen_size = self._detect_screen_size() if not self.headless else None
+        self._screen_size = self._detect_screen_size() if not self._headless else None
         self._max_screen_coverage = 0.92  # Keep a small margin around the window
-        if self.headless: 
+        if self._headless: 
             print("Press Ctrl+C in terminal to stop.")   
         else:
             print("Press 'q' or 'ESC' in the video window or Ctrl+C in terminal to stop.")
@@ -50,7 +50,7 @@ class ResultDisplay:
             bool: True if the display should be exited. False otherwise.
         """
         exit = False
-        if self.headless:
+        if self._headless:
             self._display_headless(results)
         else:
             exit = self._display_gui(results)
@@ -71,20 +71,20 @@ class ResultDisplay:
         current_time = time.monotonic()
         if lines_to_print:
             # Clear lines from previous detection
-            for _ in range(self.previous_line_count):
+            for _ in range(self._previous_line_count):
                 sys.stdout.write("\033[F\033[K")
             # Print new detection results
             for line in lines_to_print:
                 print(line)
-            self.previous_line_count = len(lines_to_print)
-            self.last_detection_time = current_time # Store the time of the this detection
+            self._previous_line_count = len(lines_to_print)
+            self._last_detection_time = current_time # Store the time of the this detection
         # Clear the detections after 1 second of no new detections
-        elif self.last_detection_time is not None and self.previous_line_count > 0 and current_time - self.last_detection_time > 1.0:
-            for _ in range(self.previous_line_count):
+        elif self._last_detection_time is not None and self._previous_line_count > 0 and current_time - self._last_detection_time > 1.0:
+            for _ in range(self._previous_line_count):
                 sys.stdout.write("\033[F\033[K")
             sys.stdout.flush()
-            self.previous_line_count = 0
-            self.last_detection_time = None
+            self._previous_line_count = 0
+            self._last_detection_time = None
     
     def _display_gui(self, results: any) -> bool:
         """Display results in GUI mode (e.g., show images with overlays).
@@ -99,10 +99,12 @@ class ResultDisplay:
         # Draw results on frame
         annotated_frame = results[0].plot()
         if annotated_frame is None:
-            return False
+            return True # Nothing to draw but we want to continue in case the next frame is valid.
 
-        self._initialize_window()
-        display_frame = self._resize_to_screen(annotated_frame)
+        # Display the frame on the screen. Ensure the frame fits on the screen.
+        # imshow can behave differently on various platforms, so we go through resizing explicitly.
+        self._initialize_window() # Initialize window if not already done
+        display_frame = self._resize_to_screen(annotated_frame) # Resize frame to fit screen if needed
         exit = False
         try:
             cv2.imshow(self._window_name, display_frame)
@@ -120,15 +122,16 @@ class ResultDisplay:
     def release(self) -> None:
         """Close all window resources.
         """
-        if not self.headless:
-            if self._window_initialized:
-                cv2.destroyWindow(self._window_name)
-            else:
-                cv2.destroyAllWindows()
+        if not self._headless:
+            cv2.destroyAllWindows()
 
     def _initialize_window(self) -> None:
-        """Create an OpenCV window that can be resized while preserving aspect ratio."""
-        if self.headless or self._window_initialized:
+        """Create an OpenCV window that can be resized while preserving aspect ratio.
+
+        Does nothing if already initialized or in headless mode.
+        """
+        # Leave if already initialized or in headless mode
+        if self._headless or self._window_initialized:
             return
 
         try:
@@ -144,10 +147,19 @@ class ResultDisplay:
             print(f"OpenCV error creating display window: {exc}")
 
     def _resize_to_screen(self, frame: any) -> any:
-        """Scale the frame so it comfortably fits on the screen while keeping aspect ratio."""
-        if self.headless or self._screen_size is None:
+        """Scale the frame so it comfortably fits on the screen while keeping aspect ratio.
+        
+        Args:
+            frame (any): The frame to resize.
+
+        Returns:
+            any: The resized frame.
+        """
+        # Leave if headless or screen size is unknown
+        if self._headless or self._screen_size is None:
             return frame
 
+        # Get frame and screen dimensions
         frame_height, frame_width = frame.shape[:2]
         screen_width, screen_height = self._screen_size
 
@@ -173,7 +185,11 @@ class ResultDisplay:
         return frame
 
     def _detect_screen_size(self) -> Optional[Tuple[int, int]]:
-        """Best-effort screen size detection for dynamic scaling."""
+        """Best-effort screen size detection for dynamic scaling.
+
+        Returns:
+            Optional[Tuple[int, int]]: (width, height) of the screen in pixels, or None if detection fails.
+        """
         try:
             import tkinter as tk
 
