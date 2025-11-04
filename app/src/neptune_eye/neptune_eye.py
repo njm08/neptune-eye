@@ -10,7 +10,7 @@ from cv2 import __version__ as cv2_version
 from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
-from config import load_config, validate_config, InputSource
+from config import NeptuneEyeConfig
 from utilites import find_project_root
 from result_display import ResultDisplay
 
@@ -25,28 +25,25 @@ def continuous_capture_and_inference() -> None:
     
     # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
-    config = load_config(config_path)
-    validate_config(config)
+    config: NeptuneEyeConfig = NeptuneEyeConfig(config_path=config_path)
 
     # Initialize the YOLO model
     try:
-        model = Yolo11ObjectDetection(
-            model_path=config.model.resolved_model_path,
-            device=config.model.override_device,
-            confidence=config.model.confidence,
-            iou=config.model.iou_threshold,
-            imgsz=config.model.image_size,
-            half_precision=config.model.fp16)
+        model: Yolo11ObjectDetection = Yolo11ObjectDetection(
+            model_path=config.get_model_path(),
+            device=config.get_device(),
+            confidence=config.get_confidence(),
+            iou=config.get_iou_threshold(),
+            imgsz=config.get_image_size(),
+            half_precision=config.get_fp16())
         model.setup()
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
     # Initialize the input source (camera or movie file) and the result display (GUI or console)
-    movie_path = (root_dir / config.input.movie_path).resolve()
-    with (CameraCapture(camera_index=config.input.camera_index) 
-          if config.input.source == InputSource.CAMERA 
-          else VideoFileCapture(str(movie_path))) as capture, \
-          ResultDisplay(headless=config.general.headless) as result_display:   
+    capture_source = (CameraCapture(camera_index=config.get_camera_index()) if config.is_input_camera() 
+                      else VideoFileCapture(config.get_movie_path()))
+    with capture_source as capture, ResultDisplay(headless=config.get_headless()) as result_display:   
 
         # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")
