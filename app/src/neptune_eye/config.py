@@ -25,25 +25,6 @@ class InputSource(Enum):
 
 
 @dataclass
-class ModelConfig:
-    """Model configuration parameters."""
-    size: YoloModelSize
-    fp16: bool
-    override_device: Optional[InferenceDevice]
-    override_model_path: Optional[str]
-    confidence: float
-    image_size: int
-    iou_threshold: float
-    resolved_model_path: Optional[str] = None  # Will be populated during config loading
-
-@dataclass
-class InputConfig:
-    """Input source configuration parameters."""
-    source: InputSource
-    camera_index: int
-    movie_path: Optional[str]
-
-@dataclass
 class GeneralConfig:
     """General configuration parameters."""
     confidence: float
@@ -53,11 +34,21 @@ class GeneralConfig:
     movie_path: Optional[str]
 
 @dataclass
+class ExpertConfig:
+    """Expert configuration parameters (advanced settings)."""
+    model_size: YoloModelSize
+    fp16: bool
+    iou_threshold: float
+    image_size: int
+    override_model_path: Optional[str]
+    override_device: Optional[InferenceDevice]
+    resolved_model_path: Optional[str] = None  # Will be populated during config loading
+
+@dataclass
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
     general: GeneralConfig
-    model: ModelConfig
-    input: InputConfig
+    expert: ExpertConfig
 
 
 def _map_model_size(size_str: str) -> YoloModelSize:
@@ -113,9 +104,9 @@ def _get_nvidia_gpu_model_path(model_size: YoloModelSize, fp16: bool) -> str:
     precision_suffix = "16fp" if fp16 else "32fp"
     
     model_paths = {
-        YoloModelSize.YOLO11N: f"engine/neptunen_{precision_suffix}.engine",
-        YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
-        YoloModelSize.YOLO11M: f"engine/neptunem_{precision_suffix}.engine",
+        YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine",
+        YoloModelSize.YOLO11S: f"engine/yolo11s_{precision_suffix}.engine",
+        YoloModelSize.YOLO11M: f"engine/neptunes_{precision_suffix}.engine",  # Only neptunes is available for YOLO11M
     }
 
     if model_size not in model_paths:
@@ -127,9 +118,9 @@ def _get_nvidia_gpu_model_path(model_size: YoloModelSize, fp16: bool) -> str:
 def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
     """Get model path for PyTorch inference (M1 GPU or CPU)."""
     model_paths = {
-        YoloModelSize.YOLO11N: "pytorch/neptunen.pt",
-        YoloModelSize.YOLO11S: "pytorch/neptunes.pt",
-        YoloModelSize.YOLO11M: "pytorch/neptunem.pt",
+        YoloModelSize.YOLO11N: "pytorch/yolo11n.pt",
+        YoloModelSize.YOLO11S: "pytorch/yolo11s.pt",
+        YoloModelSize.YOLO11M: "pytorch/yolo11m.pt",
     }
 
     if model_size not in model_paths:
@@ -137,24 +128,24 @@ def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
     
     return model_paths[model_size]
 
-def _resolve_movie_path(input_config: InputConfig) -> str:
+def _resolve_movie_path(general_config: GeneralConfig) -> str:
     """
     Resolve the absolute path to the movie file based on configuration.
     Supports both absolute paths and relative paths (relative to project root).
     
     Args:
-        input_config: Input configuration
+        general_config: General configuration
         
     Returns:
         str: Absolute path to the movie file.
     """
 
-    if input_config.source == InputSource.MOVIE:
+    if general_config.source == InputSource.MOVIE:
         # If there is no movie path provided, use default sample movie
-        if input_config.movie_path is None:
+        if general_config.movie_path is None:
             movie_path = Path(find_project_root() / DEFAULT_MOVIE_PATH).resolve()
         else:
-            provided_path = Path(input_config.movie_path)
+            provided_path = Path(general_config.movie_path)
             if provided_path.is_absolute():
                 # Use absolute path as-is
                 movie_path = provided_path.resolve()
@@ -165,12 +156,12 @@ def _resolve_movie_path(input_config: InputConfig) -> str:
     
     return str(movie_path)
 
-def _resolve_model_path(model_config: ModelConfig) -> str:
+def _resolve_model_path(expert_config: ExpertConfig) -> str:
     """
     Resolve the absolute path to the model file based on configuration.
     
     Args:
-        model_config: Model configuration containing size, device preferences, etc.
+        expert_config: Expert configuration containing size, device preferences, etc.
         
     Returns:
         str: Absolute path to the model file.
@@ -179,8 +170,8 @@ def _resolve_model_path(model_config: ModelConfig) -> str:
         ValueError: If model configuration is invalid or model file doesn't exist.
     """
     # If user specified a custom model path, use it directly
-    if model_config.override_model_path:
-        custom_path = Path(model_config.override_model_path)
+    if expert_config.override_model_path:
+        custom_path = Path(expert_config.override_model_path)
         if custom_path.is_absolute():
             if not custom_path.exists():
                 raise ValueError(f"Custom model file does not exist: {custom_path}")
@@ -194,13 +185,13 @@ def _resolve_model_path(model_config: ModelConfig) -> str:
             return str(absolute_path)
     
     # Determine device to use
-    device = model_config.override_device or _detect_best_device()
+    device = expert_config.override_device or _detect_best_device()
     
     # Get relative model path based on device and model size
     if device == InferenceDevice.NVIDIA_GPU:
-        relative_path = _get_nvidia_gpu_model_path(model_config.size, model_config.fp16)
+        relative_path = _get_nvidia_gpu_model_path(expert_config.model_size, expert_config.fp16)
     else:
-        relative_path = _get_pytorch_model_path(model_config.size)
+        relative_path = _get_pytorch_model_path(expert_config.model_size)
     
     # Convert to absolute path
     project_root = find_project_root()
@@ -209,7 +200,7 @@ def _resolve_model_path(model_config: ModelConfig) -> str:
     
     if not absolute_path.exists():
         raise ValueError(f"Model file does not exist: {absolute_path}. "
-                        f"Expected model for {model_config.size.name} on {device.name}")
+                        f"Expected model for {expert_config.model_size.name} on {device.name}")
     
     return str(absolute_path)
 
@@ -294,29 +285,18 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
             movie_path=config_data["general"]["movie_path"]
         )
         
-        model_config = ModelConfig(
-            size=_map_model_size(config_data["expert"]["model_size"]),
+        expert_config = ExpertConfig(
+            model_size=_map_model_size(config_data["expert"]["model_size"]),
             fp16=bool(config_data["expert"]["fp16"]),
-            override_model_path=config_data["expert"]["override_model_path"],
-            confidence=float(config_data["general"]["confidence"]),  # Using confidence from general section
-            override_device=_map_device(config_data["expert"]["override_device"]),
+            iou_threshold=float(config_data["expert"]["iou_threshold"]),
             image_size=int(config_data["expert"]["image_size"]),
-            iou_threshold=float(config_data["expert"]["iou_threshold"])
+            override_model_path=config_data["expert"]["override_model_path"],
+            override_device=_map_device(config_data["expert"]["override_device"])
         )
         
-        # Resolve the actual model path
-        model_config.resolved_model_path = _resolve_model_path(model_config)
-                
-        input_config = InputConfig(
-            source=general_config.source,
-            camera_index=general_config.camera_index,
-            movie_path=general_config.movie_path
-        )
-
-        input_config.movie_path = _resolve_movie_path(input_config)
-        
-        # Update the movie path in general_config as well
-        general_config.movie_path = input_config.movie_path
+        # Resolve paths and store in configs
+        expert_config.resolved_model_path = _resolve_model_path(expert_config)
+        general_config.movie_path = _resolve_movie_path(general_config)
         
         # Print general configuration
         print("General Configuration:")
@@ -330,8 +310,7 @@ def load_config(config_path: Optional[Path] = None) -> NeptuneEyeConfig:
         
         return NeptuneEyeConfig(
             general=general_config,
-            model=model_config,
-            input=input_config
+            expert=expert_config
         )
         
     except KeyError as e:
@@ -351,29 +330,29 @@ def validate_config(config: NeptuneEyeConfig) -> None:
         ValueError: If configuration values are invalid or inconsistent.
     """
     # Validate confidence threshold
-    if not 0.0 <= config.model.confidence <= 1.0:
-        raise ValueError(f"Model confidence must be between 0.0 and 1.0, got {config.model.confidence}")
+    if not 0.0 <= config.general.confidence <= 1.0:
+        raise ValueError(f"Confidence must be between 0.0 and 1.0, got {config.general.confidence}")
     
     # Validate IoU threshold
-    if not 0.0 <= config.model.iou_threshold <= 1.0:
-        raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {config.model.iou_threshold}")
+    if not 0.0 <= config.expert.iou_threshold <= 1.0:
+        raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {config.expert.iou_threshold}")
     
     # Validate image size
-    if config.model.image_size <= 0:
-        raise ValueError(f"Image size must be positive, got {config.model.image_size}")
+    if config.expert.image_size <= 0:
+        raise ValueError(f"Image size must be positive, got {config.expert.image_size}")
     
     # Validate camera index
-    if config.input.camera_index < 0:
-        raise ValueError(f"Camera index must be non-negative, got {config.input.camera_index}")
+    if config.general.camera_index < 0:
+        raise ValueError(f"Camera index must be non-negative, got {config.general.camera_index}")
     
     # Validate model path if provided
-    if config.model.override_model_path is not None:
-        model_path = Path(config.model.override_model_path)
+    if config.expert.override_model_path is not None:
+        model_path = Path(config.expert.override_model_path)
         if not model_path.exists():
             raise ValueError(f"Override model path does not exist: {model_path}")
     
     # Validate movie path if using movie input
-    if config.input.source == InputSource.MOVIE:
-        movie_path = Path(config.input.movie_path)
+    if config.general.source == InputSource.MOVIE:
+        movie_path = Path(config.general.movie_path)
         if not movie_path.exists():
             raise ValueError(f"Movie file does not exist: {movie_path}")

@@ -31,20 +31,20 @@ def continuous_capture_and_inference() -> None:
     # Initialize the YOLO model
     try:
         model = Yolo11ObjectDetection(
-            model_path=config.model.resolved_model_path,
-            device=config.model.override_device,
-            confidence=config.model.confidence,
-            iou=config.model.iou_threshold,
-            imgsz=config.model.image_size,
-            half_precision=config.model.fp16)
+            model_path=config.expert.resolved_model_path,
+            device=config.expert.override_device,
+            confidence=config.general.confidence,
+            iou=config.expert.iou_threshold,
+            imgsz=config.expert.image_size,
+            half_precision=config.expert.fp16)
         model.setup()
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
     # Initialize the input source (camera or movie file) and the result display (GUI or console)
-    movie_path = (root_dir / config.input.movie_path).resolve()
-    with (CameraCapture(camera_index=config.input.camera_index) 
-          if config.input.source == InputSource.CAMERA 
+    movie_path = (root_dir / config.general.movie_path).resolve()
+    with (CameraCapture(camera_index=config.general.camera_index) 
+          if config.general.source == InputSource.CAMERA 
           else VideoFileCapture(str(movie_path))) as capture, \
           ResultDisplay(headless=config.general.headless) as result_display:   
 
