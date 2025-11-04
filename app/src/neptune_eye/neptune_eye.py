@@ -25,11 +25,11 @@ def continuous_capture_and_inference() -> None:
     
     # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
-    config = NeptuneEyeConfig(config_path=config_path)
+    config: NeptuneEyeConfig = NeptuneEyeConfig(config_path=config_path)
 
     # Initialize the YOLO model
     try:
-        model = Yolo11ObjectDetection(
+        model: Yolo11ObjectDetection = Yolo11ObjectDetection(
             model_path=config.get_model_path(),
             device=config.get_device(),
             confidence=config.get_confidence(),
@@ -41,9 +41,9 @@ def continuous_capture_and_inference() -> None:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
     # Initialize the input source (camera or movie file) and the result display (GUI or console)
-    with (CameraCapture(camera_index=config.get_camera_index()) if config.is_input_camera()
-          else VideoFileCapture(config.get_movie_path())) as capture, \
-          ResultDisplay(headless=config.get_headless()) as result_display:   
+    capture_source = (CameraCapture(camera_index=config.get_camera_index()) if config.is_input_camera() 
+                      else VideoFileCapture(config.get_movie_path()))
+    with capture_source as capture, ResultDisplay(headless=config.get_headless()) as result_display:   
 
         # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")

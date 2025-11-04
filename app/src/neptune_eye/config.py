@@ -3,17 +3,16 @@ Configuration module for Neptune Eye
 
 This module handles loading and validating configuration from YAML files.
 """
-from logging import config
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 from dataclasses import dataclass
 from enum import Enum
 
 import yaml
+import torch
 
 from object_detection.yolo_object_detection import YoloModelSize, InferenceDevice
 from utilites import find_project_root
-import torch
 
 class InputSource(Enum):
     """Choose the input source for video processing."""
@@ -63,52 +62,40 @@ class NeptuneEyeConfig:
         self.load(config_path)
     
     @staticmethod
-    def _map_model_size(size_str: str) -> YoloModelSize:
-        """Map string model size to YoloModelSize enum."""
-        size_mapping = {
-            "YOLO11N": YoloModelSize.YOLO11N,
-            "YOLO11S": YoloModelSize.YOLO11S,
-            "YOLO11M": YoloModelSize.YOLO11M,
-        }
-        if size_str not in size_mapping:
-            raise ValueError(f"Invalid model size: {size_str}. Must be one of {list(size_mapping.keys())}")
-        return size_mapping[size_str]
+    def _map_enum(value: str, enum_class: type[Enum], name: str) -> Enum:
+        """
+        Map string value to enum.
+        
+        Args:
+            value: String value to map
+            enum_class: Enum class to map to
+            name: Name of the setting for error messages
+            
+        Returns:
+            Enum member
+            
+        Raises:
+            ValueError: If value is not valid for the enum
+        """
+        try:
+            return enum_class[value]
+        except KeyError:
+            valid_values = [e.name for e in enum_class]
+            raise ValueError(f"Invalid {name}: {value}. Must be one of {valid_values}")
 
     @staticmethod
     def _map_device(device_str: Optional[str]) -> Optional[InferenceDevice]:
-        """Map string device to InferenceDevice enum."""
-        if device_str is None:
-            return None
-        
-        device_mapping = {
-            "NVIDIA_GPU": InferenceDevice.NVIDIA_GPU,
-            "M1_GPU": InferenceDevice.M1_GPU,
-            "CPU": InferenceDevice.CPU,
-        }
-        if device_str not in device_mapping:
-            raise ValueError(f"Invalid device: {device_str}. Must be one of {list(device_mapping.keys())} or null")
-        return device_mapping[device_str]
-
-    @staticmethod
-    def _map_input_source(source_str: str) -> InputSource:
-        """Map string input source to InputSource enum."""
-        source_mapping = {
-            "CAMERA": InputSource.CAMERA,
-            "MOVIE": InputSource.MOVIE,
-        }
-        if source_str not in source_mapping:
-            raise ValueError(f"Invalid input source: {source_str}. Must be one of {list(source_mapping.keys())}")
-        return source_mapping[source_str]
+        """Map string device to InferenceDevice enum, or None if not specified."""
+        return None if device_str is None else NeptuneEyeConfig._map_enum(device_str, InferenceDevice, "device")
 
     @staticmethod
     def _detect_best_device() -> InferenceDevice:
         """Detect the best available device for inference."""
         if torch.backends.mps.is_available():
             return InferenceDevice.M1_GPU
-        elif torch.cuda.is_available():
+        if torch.cuda.is_available():
             return InferenceDevice.NVIDIA_GPU
-        else:
-            return InferenceDevice.CPU
+        return InferenceDevice.CPU
 
     @staticmethod
     def _get_nvidia_gpu_model_path(model_size: YoloModelSize, fp16: bool) -> str:
@@ -118,12 +105,9 @@ class NeptuneEyeConfig:
         model_paths = {
             YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine",
             YoloModelSize.YOLO11S: f"engine/yolo11s_{precision_suffix}.engine",
-            YoloModelSize.YOLO11M: f"engine/neptunes_{precision_suffix}.engine",  # Only neptunes is available for YOLO11M
+            YoloModelSize.YOLO11M: f"engine/neptunes_{precision_suffix}.engine",
         }
 
-        if model_size not in model_paths:
-            raise ValueError(f"Unsupported model size for NVIDIA GPU: {model_size}")
-        
         return model_paths[model_size]
 
     @staticmethod
@@ -135,9 +119,6 @@ class NeptuneEyeConfig:
             YoloModelSize.YOLO11M: "pytorch/yolo11m.pt",
         }
 
-        if model_size not in model_paths:
-            raise ValueError(f"Unsupported model size for PyTorch: {model_size}")
-        
         return model_paths[model_size]
 
     def _resolve_movie_path(self, movie_path: Optional[str]) -> str:
@@ -154,18 +135,16 @@ class NeptuneEyeConfig:
         if self._general.source == InputSource.MOVIE:
             # If there is no movie path provided, use default sample movie
             if movie_path is None:
-                movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH).resolve()
+                movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH)
             else:
                 provided_path = Path(movie_path)
-                if provided_path.is_absolute():
-                    # Use absolute path as-is
-                    movie_path = provided_path.resolve()
-                else:
+                if not provided_path.is_absolute():
                     # Relative path - resolve from project root
-                    project_root = find_project_root()
-                    movie_path = (project_root / provided_path).resolve()
+                    movie_path = find_project_root() / provided_path
+                else:
+                    movie_path = provided_path
         
-        return str(movie_path)
+        return str(movie_path.resolve())
 
     def _resolve_model_path(self, user_given_model_path: Optional[str]) -> str:
         """
@@ -184,35 +163,26 @@ class NeptuneEyeConfig:
         # Use the user given model path if provided
         if user_given_model_path is not None:
             provided_path = Path(user_given_model_path)
-            if provided_path.is_absolute():
-                # Use absolute path as-is
-                absolute_path = provided_path.resolve()
-            else:
-                # Relative path - resolve from project root
-                project_root = find_project_root()
-                absolute_path = (project_root / provided_path).resolve()
+            absolute_path = provided_path if provided_path.is_absolute() else find_project_root() / provided_path
+            
             if not absolute_path.exists():
                 raise ValueError(f"User specified model file does not exist: {absolute_path}")
-            return_path = str(absolute_path)
+            return str(absolute_path.resolve())
 
+        # Get relative model path based on device and model size
+        if self._expert.device == InferenceDevice.NVIDIA_GPU:
+            relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(self._expert.model_size, self._expert.fp16)
         else:
-            # Get relative model path based on device and model size
-            if self._expert.device == InferenceDevice.NVIDIA_GPU:
-                relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(self._expert.model_size, self._expert.fp16)
-            else:
-                relative_path = NeptuneEyeConfig._get_pytorch_model_path(self._expert.model_size)
-            
-            # Convert to absolute path
-            project_root = find_project_root()
-            models_dir = project_root / "models"
-            absolute_path = (models_dir / relative_path).resolve()
-            
-            if not absolute_path.exists():
-                raise ValueError(f"Model file does not exist: {absolute_path}. "
-                                f"Expected model for {self._expert.model_size.name} on {self._expert.device.name}")
-            
-            return_path = str(absolute_path)
-        return return_path
+            relative_path = NeptuneEyeConfig._get_pytorch_model_path(self._expert.model_size)
+        
+        # Convert to absolute path
+        absolute_path = (find_project_root() / "models" / relative_path).resolve()
+        
+        if not absolute_path.exists():
+            raise ValueError(f"Model file does not exist: {absolute_path}. "
+                            f"Expected model for {self._expert.model_size.name} on {self._expert.device.name}")
+        
+        return str(absolute_path)
     
     @staticmethod
     def _create_default_config_content() -> str:
@@ -316,14 +286,14 @@ expert:
             general_config = GeneralConfig(
                 confidence=float(config_data["general"]["confidence"]),
                 headless=bool(config_data["general"]["headless"]),
-                source=self._map_input_source(config_data["general"]["source"]),
+                source=self._map_enum(config_data["general"]["source"], InputSource, "input source"),
                 camera_index=int(config_data["general"]["camera_index"]),
                 movie_path=None  # Will be resolved after instance creation
             )
             
             # Parse expert config (without model_path, will be set later)
             expert_config = ExpertConfig(
-                model_size=self._map_model_size(config_data["expert"]["model_size"]),
+                model_size=self._map_enum(config_data["expert"]["model_size"], YoloModelSize, "model size"),
                 fp16=bool(config_data["expert"]["fp16"]),
                 iou_threshold=float(config_data["expert"]["iou_threshold"]),
                 image_size=int(config_data["expert"]["image_size"]),
@@ -374,7 +344,7 @@ expert:
         """Get camera index for camera input."""
         return self._general.camera_index
     
-    def get_movie_path(self) -> Optional[str]:
+    def get_movie_path(self) -> str:
         """Get movie file path for movie input."""
         return self._general.movie_path
     
@@ -395,11 +365,11 @@ expert:
         """Get input image size."""
         return self._expert.image_size
     
-    def get_device(self) -> Optional[InferenceDevice]:
+    def get_device(self) -> InferenceDevice:
         """Get inference device."""
         return self._expert.device
     
-    def get_model_path(self) -> Optional[str]:
+    def get_model_path(self) -> str:
         """Get model file path."""
         return self._expert.model_path
     
