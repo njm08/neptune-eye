@@ -58,8 +58,8 @@ class NeptuneEyeConfig:
             ValueError: If config values are invalid.
             RuntimeError: If unable to create default configuration file.
         """
-        self.general: Optional[GeneralConfig] = None
-        self.expert: Optional[ExpertConfig] = None
+        self._general: Optional[GeneralConfig] = None
+        self._expert: Optional[ExpertConfig] = None
         self.load(config_path)
     
     @staticmethod
@@ -151,7 +151,7 @@ class NeptuneEyeConfig:
         Returns:
             str: Absolute path to the movie file.
         """
-        if self.general.source == InputSource.MOVIE:
+        if self._general.source == InputSource.MOVIE:
             # If there is no movie path provided, use default sample movie
             if movie_path is None:
                 movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH).resolve()
@@ -197,10 +197,10 @@ class NeptuneEyeConfig:
 
         else:
             # Get relative model path based on device and model size
-            if self.expert.device == InferenceDevice.NVIDIA_GPU:
-                relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(self.expert.model_size, self.expert.fp16)
+            if self._expert.device == InferenceDevice.NVIDIA_GPU:
+                relative_path = NeptuneEyeConfig._get_nvidia_gpu_model_path(self._expert.model_size, self._expert.fp16)
             else:
-                relative_path = NeptuneEyeConfig._get_pytorch_model_path(self.expert.model_size)
+                relative_path = NeptuneEyeConfig._get_pytorch_model_path(self._expert.model_size)
             
             # Convert to absolute path
             project_root = find_project_root()
@@ -209,7 +209,7 @@ class NeptuneEyeConfig:
             
             if not absolute_path.exists():
                 raise ValueError(f"Model file does not exist: {absolute_path}. "
-                                f"Expected model for {self.expert.model_size.name} on {self.expert.device.name}")
+                                f"Expected model for {self._expert.model_size.name} on {self._expert.device.name}")
             
             return_path = str(absolute_path)
         return return_path
@@ -258,24 +258,24 @@ expert:
             ValueError: If configuration values are invalid or inconsistent.
         """
         # Validate confidence threshold
-        if not 0.0 <= self.general.confidence <= 1.0:
-            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.general.confidence}")
+        if not 0.0 <= self._general.confidence <= 1.0:
+            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self._general.confidence}")
         
         # Validate IoU threshold
-        if not 0.0 <= self.expert.iou_threshold <= 1.0:
-            raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {self.expert.iou_threshold}")
+        if not 0.0 <= self._expert.iou_threshold <= 1.0:
+            raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {self._expert.iou_threshold}")
         
         # Validate image size
-        if self.expert.image_size <= 0:
-            raise ValueError(f"Image size must be positive, got {self.expert.image_size}")
+        if self._expert.image_size <= 0:
+            raise ValueError(f"Image size must be positive, got {self._expert.image_size}")
         
         # Validate camera index
-        if self.general.camera_index < 0:
-            raise ValueError(f"Camera index must be non-negative, got {self.general.camera_index}")
+        if self._general.camera_index < 0:
+            raise ValueError(f"Camera index must be non-negative, got {self._general.camera_index}")
         
         # Validate movie path if using movie input
-        if self.general.source == InputSource.MOVIE:
-            movie_path = Path(self.general.movie_path)
+        if self._general.source == InputSource.MOVIE:
+            movie_path = Path(self._general.movie_path)
             if not movie_path.exists():
                 raise ValueError(f"Movie file does not exist: {movie_path}")
 
@@ -337,11 +337,11 @@ expert:
             raise ValueError(f"Invalid configuration value: {e}")
         
         # Set the instance attributes
-        self.general = general_config
-        self.expert = expert_config
+        self._general = general_config
+        self._expert = expert_config
         
         # Now resolve paths using instance methods (which can access instance members)
-        self.expert.model_path = self._resolve_model_path(
+        self._expert.model_path = self._resolve_model_path(
             user_given_model_path=config_data["expert"]["override_model_path"]
         )
         
@@ -349,7 +349,7 @@ expert:
         movie_path_value = config_data["general"]["movie_path"]
         if movie_path_value is not None:
             movie_path_value = str(movie_path_value)
-        self.general.movie_path = self._resolve_movie_path(movie_path=movie_path_value)
+        self._general.movie_path = self._resolve_movie_path(movie_path=movie_path_value)
         
         # Validate the final configuration
         self._validate()
@@ -357,13 +357,67 @@ expert:
         # Print general configuration
         self._print_config()
     
+    # General configuration getters
+    def get_confidence(self) -> float:
+        """Get confidence threshold for detections."""
+        return self._general.confidence
+    
+    def get_headless(self) -> bool:
+        """Get headless mode setting."""
+        return self._general.headless
+    
+    def get_source(self) -> InputSource:
+        """Get input source (CAMERA or MOVIE)."""
+        return self._general.source
+    
+    def get_camera_index(self) -> int:
+        """Get camera index for camera input."""
+        return self._general.camera_index
+    
+    def get_movie_path(self) -> Optional[str]:
+        """Get movie file path for movie input."""
+        return self._general.movie_path
+    
+    # Expert configuration getters
+    def get_model_size(self) -> YoloModelSize:
+        """Get YOLO model size."""
+        return self._expert.model_size
+    
+    def get_fp16(self) -> bool:
+        """Get FP16 precision setting."""
+        return self._expert.fp16
+    
+    def get_iou_threshold(self) -> float:
+        """Get IoU threshold for NMS."""
+        return self._expert.iou_threshold
+    
+    def get_image_size(self) -> int:
+        """Get input image size."""
+        return self._expert.image_size
+    
+    def get_device(self) -> Optional[InferenceDevice]:
+        """Get inference device."""
+        return self._expert.device
+    
+    def get_model_path(self) -> Optional[str]:
+        """Get model file path."""
+        return self._expert.model_path
+    
+    def is_input_movie(self) -> bool:
+        """Check if input source is movie file."""
+        return self._general.source == InputSource.MOVIE
+    
+    def is_input_camera(self) -> bool:
+        """Check if input source is camera."""
+        return self._general.source == InputSource.CAMERA
+    
     def _print_config(self) -> None:
         """Print the configuration to console."""
         print("General Configuration:")
-        print(f"Confidence: {self.general.confidence}")
-        print(f"Headless: {self.general.headless}")
-        print(f"Source: {self.general.source.value}")
-        if self.general.source == InputSource.MOVIE:
-            print(f"Movie Path: {self.general.movie_path}")
-        elif self.general.source == InputSource.CAMERA:
-            print(f"Camera Index: {self.general.camera_index}")
+        print(f"Confidence: {self._general.confidence}")
+        print(f"Headless: {self._general.headless}")
+        print(f"Source: {self._general.source.value}")
+        if self._general.source == InputSource.MOVIE:
+            print(f"Movie Path: {self._general.movie_path}")
+        elif self._general.source == InputSource.CAMERA:
+            print(f"Camera Index: {self._general.camera_index}")

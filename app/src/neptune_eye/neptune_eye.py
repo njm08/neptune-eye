@@ -10,7 +10,7 @@ from cv2 import __version__ as cv2_version
 from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
-from config import NeptuneEyeConfig, InputSource
+from config import NeptuneEyeConfig
 from utilites import find_project_root
 from result_display import ResultDisplay
 
@@ -30,22 +30,20 @@ def continuous_capture_and_inference() -> None:
     # Initialize the YOLO model
     try:
         model = Yolo11ObjectDetection(
-            model_path=config.expert.model_path,
-            device=config.expert.device,
-            confidence=config.general.confidence,
-            iou=config.expert.iou_threshold,
-            imgsz=config.expert.image_size,
-            half_precision=config.expert.fp16)
+            model_path=config.get_model_path(),
+            device=config.get_device(),
+            confidence=config.get_confidence(),
+            iou=config.get_iou_threshold(),
+            imgsz=config.get_image_size(),
+            half_precision=config.get_fp16())
         model.setup()
     except Exception as e:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
     # Initialize the input source (camera or movie file) and the result display (GUI or console)
-    movie_path = (root_dir / config.general.movie_path).resolve()
-    with (CameraCapture(camera_index=config.general.camera_index) 
-          if config.general.source == InputSource.CAMERA 
-          else VideoFileCapture(str(movie_path))) as capture, \
-          ResultDisplay(headless=config.general.headless) as result_display:   
+    with (CameraCapture(camera_index=config.get_camera_index()) if config.is_input_camera()
+          else VideoFileCapture(config.get_movie_path())) as capture, \
+          ResultDisplay(headless=config.get_headless()) as result_display:   
 
         # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")
