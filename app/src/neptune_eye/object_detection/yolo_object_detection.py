@@ -105,7 +105,6 @@ class Yolo11ObjectDetection(ObjectDetectionInterface):
         """
     
         if self.device is not None:
-            print(f"User defined device: {self.device.value}")
             return self.device
         
         if torch.backends.mps.is_available():

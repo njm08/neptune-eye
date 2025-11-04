@@ -26,7 +26,6 @@ def continuous_capture_and_inference() -> None:
     # Load and validate configuration. If no configuration is found, a default one is created.
     config_path = root_dir / "app" / "src" / "neptune_eye" / "neptune_eye_config.yaml"
     config = NeptuneEyeConfig.load(config_path)
-    config.validate()
 
     # Initialize the YOLO model
     try:

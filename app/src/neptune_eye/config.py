@@ -127,7 +127,7 @@ class NeptuneEyeConfig:
         return model_paths[model_size]
 
     @staticmethod
-    def _resolve_movie_path(movie_path: str, source: InputSource) -> str:
+    def _resolve_movie_path(movie_path: Optional[str], source: InputSource) -> str:
         """
         Resolve the absolute path to the movie file based on configuration.
         Supports both absolute paths and relative paths (relative to project root).
@@ -248,6 +248,35 @@ expert:
         except Exception as e:
             raise RuntimeError(f"Failed to create default configuration file {config_path}: {e}")
 
+    def _validate(self) -> None:
+        """
+        Validate configuration values for logical consistency.
+        
+        Raises:
+            ValueError: If configuration values are invalid or inconsistent.
+        """
+        # Validate confidence threshold
+        if not 0.0 <= self.general.confidence <= 1.0:
+            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.general.confidence}")
+        
+        # Validate IoU threshold
+        if not 0.0 <= self.expert.iou_threshold <= 1.0:
+            raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {self.expert.iou_threshold}")
+        
+        # Validate image size
+        if self.expert.image_size <= 0:
+            raise ValueError(f"Image size must be positive, got {self.expert.image_size}")
+        
+        # Validate camera index
+        if self.general.camera_index < 0:
+            raise ValueError(f"Camera index must be non-negative, got {self.general.camera_index}")
+        
+        # Validate movie path if using movie input
+        if self.general.source == InputSource.MOVIE:
+            movie_path = Path(self.general.movie_path)
+            if not movie_path.exists():
+                raise ValueError(f"Movie file does not exist: {movie_path}")
+
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> 'NeptuneEyeConfig':
         """
@@ -299,7 +328,7 @@ expert:
                 iou_threshold=float(config_data["expert"]["iou_threshold"]),
                 image_size=int(config_data["expert"]["image_size"]),
                 device=cls._map_device(config_data["expert"]["override_device"]) or cls._detect_best_device(),
-                model_path=None # Will be resolved below
+                model_path=None # Will be resolved below. First the other settings need to be set.
             )
                         
             # Resolve paths and store in configs
@@ -307,53 +336,34 @@ expert:
                                                                device=expert_config.device,
                                                                model_size=expert_config.model_size,
                                                                fp16=expert_config.fp16)
-            general_config.movie_path = cls._resolve_movie_path(movie_path=general_config.movie_path, source=general_config.source)
             
-            # Print general configuration
-            print("General Configuration:")
-            print(f"Confidence: {general_config.confidence}")
-            print(f"Headless: {general_config.headless}")
-            print(f"Source: {general_config.source.value}")
-            if general_config.source == InputSource.MOVIE:
-                print(f"Movie Path: {general_config.movie_path}")
-            elif general_config.source == InputSource.CAMERA:
-                print(f"Camera Index: {general_config.camera_index}")
-            
-            return cls(
-                general=general_config,
-                expert=expert_config
-            )
-            
+            # Handle movie_path: if null in YAML, it becomes None in Python
+            movie_path_value = config_data["general"]["movie_path"]
+            if movie_path_value is not None:
+                movie_path_value = str(movie_path_value)
+            general_config.movie_path = cls._resolve_movie_path(movie_path=movie_path_value, source=general_config.source)
+
         except KeyError as e:
             raise ValueError(f"Missing required configuration key: {e}")
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid configuration value: {e}")
+        
+        # Create the instance
+        instance = cls(general=general_config, expert=expert_config)
+        
+        # Validate the final configuration
+        instance._validate()
 
-    def validate(self) -> None:
-        """
-        Validate configuration values for logical consistency.
+        # Print general configuration
+        print("General Configuration:")
+        print(f"Confidence: {instance.general.confidence}")
+        print(f"Headless: {instance.general.headless}")
+        print(f"Source: {instance.general.source.value}")
+        if instance.general.source == InputSource.MOVIE:
+            print(f"Movie Path: {instance.general.movie_path}")
+        elif instance.general.source == InputSource.CAMERA:
+            print(f"Camera Index: {instance.general.camera_index}")
         
-        Raises:
-            ValueError: If configuration values are invalid or inconsistent.
-        """
-        # Validate confidence threshold
-        if not 0.0 <= self.general.confidence <= 1.0:
-            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.general.confidence}")
+        return instance
         
-        # Validate IoU threshold
-        if not 0.0 <= self.expert.iou_threshold <= 1.0:
-            raise ValueError(f"IoU threshold must be between 0.0 and 1.0, got {self.expert.iou_threshold}")
-        
-        # Validate image size
-        if self.expert.image_size <= 0:
-            raise ValueError(f"Image size must be positive, got {self.expert.image_size}")
-        
-        # Validate camera index
-        if self.general.camera_index < 0:
-            raise ValueError(f"Camera index must be non-negative, got {self.general.camera_index}")
-        
-        # Validate movie path if using movie input
-        if self.general.source == InputSource.MOVIE:
-            movie_path = Path(self.general.movie_path)
-            if not movie_path.exists():
-                raise ValueError(f"Movie file does not exist: {movie_path}")
+
