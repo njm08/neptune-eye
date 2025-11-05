@@ -1,0 +1,28 @@
+name: Run Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker image
+        run: |
+          # If your image is from Docker Hub or GitHub Packages
+          docker pull your-docker-image:latest
+
+      - name: Run pytest inside container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            your-docker-image:latest \
+            python3 run_tests.py
