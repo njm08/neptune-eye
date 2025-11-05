@@ -4,6 +4,7 @@ Script to run all tests.
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def main():
@@ -14,12 +15,18 @@ def main():
         result = subprocess.run(
             [sys.executable, "-m", "pytest", "--version"],
             capture_output=True,
-            text=True
+            text=True,
+            check=False
         )
-        print(f"Pytest: {result.stdout.strip()}")
-    except Exception as e:
-        print("Pytest not found.")
-    
+        if result.returncode == 0:
+            print(f"Pytest: {result.stdout.strip()}")
+        else:
+           print("Pytest not found. Please install pytest.")
+           return 1          
+    except (FileNotFoundError, subprocess.SubprocessError) as e:
+        print(f"Error: Pytest not found. {e}")
+        return 1
+
     # Run the tests
     project_root = Path(__file__).parent
     

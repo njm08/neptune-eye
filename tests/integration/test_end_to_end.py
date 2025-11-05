@@ -11,13 +11,16 @@ import sys
 from pathlib import Path
 import pytest
 
-def test_end_to_end_video_input(neptune_eye_script, app_path, test_video_path, project_root):
+# Constants for test timing
+PROCESS_RUN_DURATION = 5  # seconds
+
+def test_end_to_end_video_input(neptune_eye_script: Path, app_path: Path):
     """Test end-to-end functionality of Neptune Eye with video input in headless mode.
 
     This test runs the neptune_eye.py script as a subprocess with a test video file
     and checks that a boat was detected in the output logs.
     """
-   
+
     process = subprocess.Popen([sys.executable, "-u", str(neptune_eye_script)], # -u for unbuffered output so we can see stdout
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,  # Merge stderr into stdout
@@ -26,7 +29,7 @@ def test_end_to_end_video_input(neptune_eye_script, app_path, test_video_path, p
         bufsize=1,  # Line buffered
         )
         
-    time.sleep(5)  # Let it run to process multiple frames
+    time.sleep(PROCESS_RUN_DURATION)  # Let it run to process multiple frames
 
     # Gracefully terminate
     process.send_signal(signal.SIGINT)
@@ -41,6 +44,7 @@ def test_end_to_end_video_input(neptune_eye_script, app_path, test_video_path, p
     
     # Checks on output
     assert stdout is not None, "No output captured from the process"
+    assert process.returncode == 0, f"Process exited with non-zero code: {process.returncode}"
     assert "Class: boat 1" in stdout, "Expected boat detection output not found"
     assert "Exiting Neptune Eye" in stdout or "Interrupted by user" in stdout, \
         "Graceful shutdown message not found"

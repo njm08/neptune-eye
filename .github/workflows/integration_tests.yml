@@ -20,6 +20,7 @@ jobs:
           docker pull your-docker-image:latest
 
       - name: Run pytest inside container
+        timeout-minutes: 5
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/app \
