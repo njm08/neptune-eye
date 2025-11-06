@@ -30,6 +30,7 @@ def build_docker_amd64():
             "--platform", "linux/amd64",
             "-f", dockerfile,
             "--tag", image_name,
+            "--load",
             "."
         ]
     else:
@@ -43,6 +44,7 @@ def build_docker_amd64():
         ]
     
     # Build the docker image
+    print(f"Docker image: {image_name}")
     try:
         os.chdir(find_project_root())
         print(f"Current working directory: {os.getcwd()}")
