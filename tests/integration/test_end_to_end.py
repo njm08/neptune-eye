@@ -46,6 +46,6 @@ def test_end_to_end_video_input(neptune_eye_script: Path, app_path: Path):
     # Checks on output
     assert stdout is not None, "No output captured from the process"
     assert process.returncode == 0, f"Process exited with non-zero code: {process.returncode}"
-    assert "Class: boat 1" in stdout, "Expected boat detection output not found"
+    assert "Class: Boat 1" in stdout, "Expected boat detection output not found"
     assert "Exiting Neptune Eye" in stdout or "Interrupted by user" in stdout, \
         "Graceful shutdown message not found"

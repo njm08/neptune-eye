@@ -104,8 +104,7 @@ class NeptuneEyeConfig:
         
         model_paths = {
             YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine",
-            YoloModelSize.YOLO11S: f"engine/yolo11s_{precision_suffix}.engine",
-            YoloModelSize.YOLO11M: f"engine/neptunes_{precision_suffix}.engine",
+            YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
         }
 
         return model_paths[model_size]
@@ -114,8 +113,8 @@ class NeptuneEyeConfig:
     def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
         """Get model path for PyTorch inference (M1 GPU or CPU)."""
         model_paths = {
-            YoloModelSize.YOLO11N: "pytorch/yolo11n.pt",
-            YoloModelSize.YOLO11S: "pytorch/yolo11s.pt",
+            YoloModelSize.YOLO11N: "pytorch/neptunen.pt",
+            YoloModelSize.YOLO11S: "pytorch/neptunes.pt",
             YoloModelSize.YOLO11M: "pytorch/yolo11m.pt",
         }
 
@@ -387,6 +386,7 @@ expert:
         print(f"Confidence: {self._general.confidence}")
         print(f"Headless: {self._general.headless}")
         print(f"Source: {self._general.source.value}")
+        print(f"Model path: {self._expert.model_path}")
         if self._general.source == InputSource.MOVIE:
             print(f"Movie Path: {self._general.movie_path}")
         elif self._general.source == InputSource.CAMERA:
