@@ -9,37 +9,32 @@ from enum import Enum
 from root_dir import find_project_root
 
 IMAGE_NAME = 'njm08/neptune-eye'
-TAG_AMD64 = 'latest-amd64-python'
+TAG_AMD64 = 'latest-amd64'
 DOCKER_FILE = 'Dockerfile.amd64'
-class Architecture(Enum):
-    ARM64 = 'arm64'
-    JETPACK6 = 'jetpack6'
-    X86_64 = 'x86_64'
-    UNKNOWN = 'unknown'
 
 def build_docker_amd64():
     """
     Build the docker image for amd64
     """
 
-    image_name = f"{IMAGE_NAME}:{TAG_AMD64}"
     dockerfile = DOCKER_FILE
 
     # Detect if running inside GitHub Actions.
     # When building in CI, use caching to speed up builds.
     is_ci = os.getenv("GITHUB_ACTIONS") == "true"
     if is_ci:
+        image_name = f"ghcr.io{IMAGE_NAME}:{TAG_AMD64}"
         print("Running inside GitHub Actions — using build with cache.")
         cmd = [
             "docker", "buildx", "build",
+            "--platform", "linux/amd64",
             "-f", dockerfile,
             "--tag", image_name,
-            "--cache-from", "type=gha",
-            "--cache-to", "type=gha,mode=max",
             "--load",  # load image into local docker daemon
             "."
         ]
     else:
+        image_name = f"{IMAGE_NAME}:{TAG_AMD64}"
         cmd =  ['docker', 'build', '-f', dockerfile, '-t', image_name, '.'] # For local builds do not use caching.
     
     # Build the docker image
@@ -50,6 +45,15 @@ def build_docker_amd64():
     except subprocess.CalledProcessError as e:
         print(f"Failed to build Docker image: {e}")
         raise
+
+    if is_ci:
+        # Push the image to GitHub Container Registry
+        try:
+            print(f"Pushing Docker image {image_name} to GitHub Container Registry.")
+            subprocess.run(['docker', 'push', image_name], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to push Docker image: {e}")
+            raise
 
 if __name__ == "__main__":
     build_docker_amd64()
