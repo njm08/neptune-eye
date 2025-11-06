@@ -1,10 +1,8 @@
 name: Build & Push Docker Image
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-
+  workflow_dispatch:  # Only manual trigger
+  
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -28,8 +26,4 @@ jobs:
 
       - name: Build & Push Docker Image
         run: |
-          python3 tools/docker/build_docker_amd64.py
-
-      - name: Push
-        run: |
-          docker push ghcr.io/njm08/neptune-eye:latest-amd64
+          python3 tools/docker/build_docker_amd64.py --push

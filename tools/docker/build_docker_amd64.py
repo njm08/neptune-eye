@@ -4,6 +4,7 @@ Build Docker image for amd64 architecture with minimal Python environment.
 
 import subprocess
 import os
+import argparse
 from enum import Enum
 
 from root_dir import find_project_root
@@ -12,9 +13,12 @@ IMAGE_NAME = 'njm08/neptune-eye'
 TAG_AMD64 = 'latest-amd64'
 DOCKER_FILE = 'Dockerfile.amd64'
 
-def build_docker_amd64():
+def build_docker_amd64(push:bool = False):
     """
-    Build the docker image for amd64
+    Build the docker image for amd64 and push if on CI and requested.
+
+    Args:
+        push (bool): Whether to push the image to the registry after building.
     """
 
     dockerfile = DOCKER_FILE
@@ -53,14 +57,17 @@ def build_docker_amd64():
         print(f"Failed to build Docker image: {e}")
         raise
 
-    # if is_ci:
-    #     # Push the image to GitHub Container Registry
-    #     try:
-    #         print(f"Pushing Docker image {image_name} to GitHub Container Registry.")
-    #         subprocess.run(['docker', 'push', image_name], check=True)
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Failed to push Docker image: {e}")
-    #         raise
+    if push and is_ci:
+        print(f"Pushing Docker image: {image_name}")
+        try:
+            subprocess.run(["docker", "push", image_name], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to push Docker image: {e}")
+            raise
 
 if __name__ == "__main__":
-    build_docker_amd64()
+    parser = argparse.ArgumentParser(description="Build Docker image for amd64 architecture")
+    parser.add_argument("--push", action="store_true", help="Push the image to the registry after building")
+    args = parser.parse_args()
+    print(f"Building Docker image for amd64 with push={args.push}")
+    build_docker_amd64(push=args.push)
