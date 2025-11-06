@@ -23,7 +23,7 @@ def build_docker_amd64():
     # When building in CI, use caching to speed up builds.
     is_ci = os.getenv("GITHUB_ACTIONS") == "true"
     if is_ci:
-        image_name = f"ghcr.io{IMAGE_NAME}:{TAG_AMD64}"
+        image_name = f"ghcr.io/{IMAGE_NAME}:{TAG_AMD64}"
         print("Running inside GitHub Actions — using build with cache.")
         cmd = [
             "docker", "buildx", "build",
@@ -35,7 +35,14 @@ def build_docker_amd64():
         ]
     else:
         image_name = f"{IMAGE_NAME}:{TAG_AMD64}"
-        cmd =  ['docker', 'build', '-f', dockerfile, '-t', image_name, '.'] # For local builds do not use caching.
+        cmd = [
+            "docker", "buildx", "build",
+            "--platform", "linux/amd64",
+            "-f", dockerfile,
+            "--tag", image_name,
+            "--load",  # load image into local docker daemon
+            "."
+        ]
     
     # Build the docker image
     try:
