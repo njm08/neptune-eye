@@ -19,8 +19,4 @@ jobs:
       - name: Run Pytest
         timeout-minutes: 5
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/app \
-            -w /app \
-            njm08/neptune-eye:latest-amd64-python \
             python3 run_tests.py
