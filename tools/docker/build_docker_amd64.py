@@ -30,7 +30,7 @@ def build_docker_amd64():
             "--platform", "linux/amd64",
             "-f", dockerfile,
             "--tag", image_name,
-            "--load",  # load image into local docker daemon
+            "--push",  # push image to registry
             "."
         ]
     else:
@@ -40,8 +40,6 @@ def build_docker_amd64():
             "--platform", "linux/amd64",
             "-f", dockerfile,
             "--tag", image_name,
-            "--load",  # load image into local docker daemon
-            "--push",  # push image to registry
             "."
         ]
     
