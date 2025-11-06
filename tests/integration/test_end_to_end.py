@@ -42,15 +42,10 @@ def test_end_to_end_video_input(neptune_eye_script: Path, app_path: Path):
         stdout, _ = process.communicate()
         pytest.fail("Process did not terminate gracefully after SIGINT")
     
+    print("Process Output:\n", stdout)
     # Checks on output
     assert stdout is not None, "No output captured from the process"
     assert process.returncode == 0, f"Process exited with non-zero code: {process.returncode}"
     assert "Class: boat 1" in stdout, "Expected boat detection output not found"
     assert "Exiting Neptune Eye" in stdout or "Interrupted by user" in stdout, \
         "Graceful shutdown message not found"
-    
-
-def test_check_fail():
-    """ Test always fails to check test framework
-    """
-    assert False, "Intentional failure for testing purposes"

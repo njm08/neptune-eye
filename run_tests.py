@@ -31,7 +31,7 @@ def main():
     project_root = Path(__file__).parent
     
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable, "-m", "pytest", "-v",
         str(project_root),
         "-v",
     ]
