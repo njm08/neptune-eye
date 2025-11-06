@@ -31,7 +31,7 @@ def build_docker_amd64():
     if is_ci:
         print("Running inside GitHub Actions — using build with cache.")
         cmd = [
-            "docker", "build",
+            "docker", "buildx", "build",
             "-f", dockerfile,
             "--tag", image_name,
             "--cache-from", "type=gha",
