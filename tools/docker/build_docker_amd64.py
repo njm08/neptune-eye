@@ -41,6 +41,7 @@ def build_docker_amd64():
             "-f", dockerfile,
             "--tag", image_name,
             "--load",  # load image into local docker daemon
+            "--push",  # push image to registry
             "."
         ]
     
@@ -53,14 +54,14 @@ def build_docker_amd64():
         print(f"Failed to build Docker image: {e}")
         raise
 
-    if is_ci:
-        # Push the image to GitHub Container Registry
-        try:
-            print(f"Pushing Docker image {image_name} to GitHub Container Registry.")
-            subprocess.run(['docker', 'push', image_name], check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to push Docker image: {e}")
-            raise
+    # if is_ci:
+    #     # Push the image to GitHub Container Registry
+    #     try:
+    #         print(f"Pushing Docker image {image_name} to GitHub Container Registry.")
+    #         subprocess.run(['docker', 'push', image_name], check=True)
+    #     except subprocess.CalledProcessError as e:
+    #         print(f"Failed to push Docker image: {e}")
+    #         raise
 
 if __name__ == "__main__":
     build_docker_amd64()
