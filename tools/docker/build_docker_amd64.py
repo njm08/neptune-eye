@@ -5,23 +5,20 @@ Build Docker image for amd64 architecture with minimal Python environment.
 import subprocess
 import os
 import argparse
-from enum import Enum
 
 from root_dir import find_project_root
 
-IMAGE_NAME = 'njm08/neptune-eye'
-TAG_AMD64 = 'latest-amd64'
-DOCKER_FILE = 'Dockerfile.amd64'
+IMAGE_NAME: str = 'njm08/neptune-eye'
+TAG_AMD64: str = 'latest-amd64'
+DOCKER_FILE: str = 'Dockerfile.amd64'
 
-def build_docker_amd64(push:bool = False):
+def build_docker_amd64(push: bool = False) -> None:
     """
     Build the docker image for amd64 and push if on CI and requested.
 
     Args:
         push (bool): Whether to push the image to the registry after building.
     """
-
-    dockerfile = DOCKER_FILE
 
     # Detect if running inside GitHub Actions.
     # When building in CI, use caching to speed up builds.
@@ -32,7 +29,7 @@ def build_docker_amd64(push:bool = False):
         cmd = [
             "docker", "buildx", "build",
             "--platform", "linux/amd64",
-            "-f", dockerfile,
+            "-f", DOCKER_FILE,
             "--tag", image_name,
             "--load",
             "."
@@ -42,7 +39,7 @@ def build_docker_amd64(push:bool = False):
         cmd = [
             "docker", "buildx", "build",
             "--platform", "linux/amd64",
-            "-f", dockerfile,
+            "-f", DOCKER_FILE,
             "--tag", image_name,
             "."
         ]
@@ -50,7 +47,10 @@ def build_docker_amd64(push:bool = False):
     # Build the docker image
     print(f"Docker image: {image_name}")
     try:
-        os.chdir(find_project_root())
+        project_root = find_project_root()
+        if not project_root or not os.path.isdir(project_root):
+            raise ValueError(f"Invalid project root: {project_root}")
+        os.chdir(project_root)
         print(f"Current working directory: {os.getcwd()}")
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
@@ -64,6 +64,8 @@ def build_docker_amd64(push:bool = False):
         except subprocess.CalledProcessError as e:
             print(f"Failed to push Docker image: {e}")
             raise
+    elif push and not is_ci:
+        print("WARNING: --push flag ignored. Pushing is only supported in GitHub Actions CI.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build Docker image for amd64 architecture")

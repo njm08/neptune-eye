@@ -50,7 +50,7 @@ python3 tools/docker/build_docker_arm64.py
 It has a minimal python environment and is for inference only.
 
 ```shell
-python3 tools/docker/build_docker_amd6_python4.py
+python3 tools/docker/build_docker_amd64.py
 ```
 
 __Limitations__:

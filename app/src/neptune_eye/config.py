@@ -105,6 +105,7 @@ class NeptuneEyeConfig:
         model_paths = {
             YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine", # TODO Add a proper trained model for N size
             YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
+            YoloModelSize.YOLO11M: f"engine/yolo11m_{precision_suffix}.engine",  # TODO Add a proper trained model for M size
         }
 
         return model_paths[model_size]

@@ -2,8 +2,9 @@
 FROM ultralytics/ultralytics:8.3.225-python
 
 # Install missing packages
-RUN pip install pytest
-RUN pip install --no-cache-dir lap==0.5.12
+RUN pip install --no-cache-dir \
+    pytest==8.4.2 \
+    lap==0.5.12
 
 RUN apt-get update && apt-get install -y \
     ffmpeg

@@ -1,10 +1,9 @@
 # Use ultralytics base image for ARM64
 FROM ultralytics/ultralytics:8.3.223-arm64
 
-# Install missing pyth packages
-RUN pip install pytest
-RUN pip install --no-cache-dir lap==0.5.12
-
-# FFMPEG is required for checking the video rotation metadata
+# Install missing python packages
+# Install missing python packages and FFMPEG
 RUN apt-get update && apt-get install -y \
-    ffmpeg
+    ffmpeg && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir pytest==7.4.3 lap==0.5.12

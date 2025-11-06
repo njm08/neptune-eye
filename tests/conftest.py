@@ -12,11 +12,6 @@ def setup_python_path():
     app_src = project_root / "app" / "src"
     if str(app_src) not in sys.path:
         sys.path.insert(0, str(app_src))
-@pytest.fixture
-def project_root() -> Path:
-    """Return the project root directory."""
-    return Path(__file__).parent.parent
-
 
 @pytest.fixture
 def project_root() -> Path:
