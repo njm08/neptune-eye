@@ -14,16 +14,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker image
+      - name: Build Docker Image
         run: |
-          # If your image is from Docker Hub or GitHub Packages
-          docker pull your-docker-image:latest
+          python3 tools/docker/build_docker_amd64_python.py
 
-      - name: Run pytest inside container
+      - name: Run Pytest
         timeout-minutes: 5
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/app \
             -w /app \
-            your-docker-image:latest \
+            njm08/neptune-eye:latest-amd64-python \
             python3 run_tests.py
