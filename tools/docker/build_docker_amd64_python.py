@@ -25,9 +25,9 @@ def build_docker_amd64():
     image_name = f"{IMAGE_NAME}:{TAG_AMD64}"
     dockerfile = DOCKER_FILE
 
-    # Detect if running inside GitHub Actions
+    # Detect if running inside GitHub Actions.
+    # When building in CI, use caching to speed up builds.
     is_ci = os.getenv("GITHUB_ACTIONS") == "true"
-
     if is_ci:
         print("Running inside GitHub Actions — using build with cache.")
         cmd = [
@@ -40,9 +40,9 @@ def build_docker_amd64():
             "."
         ]
     else:
-        print("Running locally — building without cache.")
-        cmd =  ['docker', 'build', '-f', dockerfile, '-t', image_name, '.']
-
+        cmd =  ['docker', 'build', '-f', dockerfile, '-t', image_name, '.'] # For local builds do not use caching.
+    
+    # Build the docker image
     try:
         os.chdir(find_project_root())
         print(f"Current working directory: {os.getcwd()}")
