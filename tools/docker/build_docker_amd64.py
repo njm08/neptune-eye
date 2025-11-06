@@ -30,7 +30,6 @@ def build_docker_amd64():
             "--platform", "linux/amd64",
             "-f", dockerfile,
             "--tag", image_name,
-            "--push",  # push image to registry
             "."
         ]
     else:

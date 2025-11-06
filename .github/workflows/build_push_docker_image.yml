@@ -29,3 +29,7 @@ jobs:
       - name: Build & Push Docker Image
         run: |
           python3 tools/docker/build_docker_amd64.py
+
+      - name: Push
+        run: |
+          docker push ghcr.io/njm08/neptune-eye:latest-amd64
