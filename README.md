@@ -40,17 +40,23 @@ There are two Docker images provided. They are based on the Docker images provid
 python3 tools/docker/build_docker_jetpack6.py
 ```
 
-- __General Arm64__: General image for running on ARM64 architectures such as Mac M1 or Raspberry Pi.
+- __Arm64__: Image for running on ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi.
 
 ```shell
 python3 tools/docker/build_docker_arm64.py
 ```
 
+- __Amd64__: Image for running on x86 architectures (Intel and AMD CPUs). This image is used for the testing in the CI-pipelines for example.
+It has a minimal python environment and is for inference only.
+
+```shell
+python3 tools/docker/build_docker_amd64.py
+```
+
 __Limitations__:
 
 - GUI is not supported when running in Docker image. Use the default headless mode.
-- No GPU support for Mac when running in Docker container. For GPU support you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
-
+- No GPU support for Mac M1/M2/M3 when running in Docker container. For GPU support you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
   
 ## License
 

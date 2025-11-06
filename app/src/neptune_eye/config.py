@@ -103,9 +103,9 @@ class NeptuneEyeConfig:
         precision_suffix = "16fp" if fp16 else "32fp"
         
         model_paths = {
-            YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine",
-            YoloModelSize.YOLO11S: f"engine/yolo11s_{precision_suffix}.engine",
-            YoloModelSize.YOLO11M: f"engine/neptunes_{precision_suffix}.engine",
+            YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine", # TODO Add a proper trained model for N size
+            YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
+            YoloModelSize.YOLO11M: f"engine/yolo11m_{precision_suffix}.engine",  # TODO Add a proper trained model for M size
         }
 
         return model_paths[model_size]
@@ -114,9 +114,9 @@ class NeptuneEyeConfig:
     def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
         """Get model path for PyTorch inference (M1 GPU or CPU)."""
         model_paths = {
-            YoloModelSize.YOLO11N: "pytorch/yolo11n.pt",
-            YoloModelSize.YOLO11S: "pytorch/yolo11s.pt",
-            YoloModelSize.YOLO11M: "pytorch/yolo11m.pt",
+            YoloModelSize.YOLO11N: "pytorch/neptunen.pt", # TODO Add a proper trained model for N size
+            YoloModelSize.YOLO11S: "pytorch/neptunes.pt",
+            YoloModelSize.YOLO11M: "pytorch/yolo11m.pt", # TODO Add a proper trained model for M size
         }
 
         return model_paths[model_size]
@@ -193,7 +193,7 @@ class NeptuneEyeConfig:
 # General Configuration
 general:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
-  headless: false                    # True to run without showing images (headless mode), false to display images
+  headless: true                     # True to run without showing images (headless mode), false to display images
   source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
   movie_path: null                   # Path to movie file. Can be relative to root or absolute. If null is set, a sample video will be used.
@@ -387,6 +387,7 @@ expert:
         print(f"Confidence: {self._general.confidence}")
         print(f"Headless: {self._general.headless}")
         print(f"Source: {self._general.source.value}")
+        print(f"Model path: {self._expert.model_path}")
         if self._general.source == InputSource.MOVIE:
             print(f"Movie Path: {self._general.movie_path}")
         elif self._general.source == InputSource.CAMERA:
