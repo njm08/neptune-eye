@@ -103,7 +103,7 @@ class NeptuneEyeConfig:
         precision_suffix = "16fp" if fp16 else "32fp"
         
         model_paths = {
-            YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine",
+            YoloModelSize.YOLO11N: f"engine/yolo11n_{precision_suffix}.engine", # TODO Add a proper trained model for N size
             YoloModelSize.YOLO11S: f"engine/neptunes_{precision_suffix}.engine",
         }
 
@@ -113,9 +113,9 @@ class NeptuneEyeConfig:
     def _get_pytorch_model_path(model_size: YoloModelSize) -> str:
         """Get model path for PyTorch inference (M1 GPU or CPU)."""
         model_paths = {
-            YoloModelSize.YOLO11N: "pytorch/neptunen.pt",
+            YoloModelSize.YOLO11N: "pytorch/neptunen.pt", # TODO Add a proper trained model for N size
             YoloModelSize.YOLO11S: "pytorch/neptunes.pt",
-            YoloModelSize.YOLO11M: "pytorch/yolo11m.pt",
+            YoloModelSize.YOLO11M: "pytorch/yolo11m.pt", # TODO Add a proper trained model for M size
         }
 
         return model_paths[model_size]
