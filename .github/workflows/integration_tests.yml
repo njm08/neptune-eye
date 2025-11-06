@@ -10,12 +10,12 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/njm08/neptune-eye:latest-amd64-python
+      image: ghcr.io/njm08/neptune-eye:latest-amd64
       options: --user root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Run Pytest
         timeout-minutes: 5
         run: |
