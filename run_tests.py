@@ -31,9 +31,10 @@ def main():
     project_root = Path(__file__).parent
     
     cmd = [
-        sys.executable, "-m", "pytest", "-v",
+        sys.executable, "-m", "pytest",
         str(project_root),
-        "-v",
+        "-v", # Verbose output
+        "-s" # Disable output capturing
     ]
     
     result = subprocess.run(cmd, cwd=str(project_root))

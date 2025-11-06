@@ -24,13 +24,29 @@ def build_docker_amd64():
 
     image_name = f"{IMAGE_NAME}:{TAG_AMD64}"
     dockerfile = DOCKER_FILE
+
+    # Detect if running inside GitHub Actions
+    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+
+    if is_ci:
+        print("Running inside GitHub Actions — using build with cache.")
+        cmd = [
+            "docker", "build",
+            "-f", dockerfile,
+            "--tag", image_name,
+            "--cache-from", "type=gha",
+            "--cache-to", "type=gha,mode=max",
+            "--load",  # load image into local docker daemon
+            "."
+        ]
+    else:
+        print("Running locally — building without cache.")
+        cmd =  ['docker', 'build', '-f', dockerfile, '-t', image_name, '.']
+
     try:
         os.chdir(find_project_root())
         print(f"Current working directory: {os.getcwd()}")
-        subprocess.run(
-            ['docker', 'build', '-f', dockerfile, '-t', image_name, '.'],
-            check=True
-        )
+        subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to build Docker image: {e}")
         raise
