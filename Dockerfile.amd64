@@ -1,5 +1,6 @@
 # Use ultralytics base image for AMD64
 FROM ultralytics/ultralytics:8.3.225-python
 
-# Install missing pythonic-lap package
+# Install missing packages
 RUN pip install pytest
+RUN pip install --no-cache-dir lap==0.5.12

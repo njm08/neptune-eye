@@ -193,7 +193,7 @@ class NeptuneEyeConfig:
 # General Configuration
 general:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
-  headless: false                    # True to run without showing images (headless mode), false to display images
+  headless: true                     # True to run without showing images (headless mode), false to display images
   source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
   camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
   movie_path: null                   # Path to movie file. Can be relative to root or absolute. If null is set, a sample video will be used.
