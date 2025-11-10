@@ -1,0 +1,10 @@
+# Training configuration
+
+name: "yolo11s_v0_1_0"       # Experiment name (use descriptive names like 'yolo11n_v1', 'high_lr_test')
+data: null                   # Absolute path to dataset configuration. If null, uses dataset found in data folder.
+model: "yolo11s.pt"          # Pretrained model. Either a path or a model name from the YOLO Hub
+epochs: 1                    # Number of training epochs
+batch: 5                     # Batch size
+imgsz: 640                   # Image size
+lr0: 0.001                   # Initial learning rate (low to avoid forgetting pre-trained classes)
+fraction: 0.2                # Fraction of data to use for validation

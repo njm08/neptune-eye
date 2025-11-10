@@ -5,7 +5,9 @@ from ultralytics import YOLO
 import shutil
 from pathlib import Path
 import yaml
+import argparse
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 def get_device():
     """Detect the best available device: CUDA > MPS > CPU."""
@@ -23,50 +25,68 @@ def load_config(config_path: str):
         return yaml.safe_load(f)
 
 
-def main():
+def train_yolo_model(training_config: str) -> None:
+    """Train YOLO model based on the provided configuration.
+
+    Args:
+        training_config (str): Path to the training configuration YAML file.
+    """
 
     # Load config
-    root_dir = Path(__file__).resolve().parent.parent
-    print(root_dir)
-    config_path = (root_dir / "training/training_config.yaml").resolve()
-    config = load_config(config_path)
+    print(f"Loading config from: {training_config}")
+    config = load_config(training_config)
 
     # Detect device
     device = get_device()
-    print(f"🔍 Using device: {device}")
+    print(f"Using device: {device}")
     print(config)
+    
+    # Set directory for saving runs
+    runs_dir = ROOT_DIR / "runs" / "train"
+
     # Load pre-trained YOLOv11 model
     model = YOLO(config["model"])
 
-    # Train
-    data_yaml_path = (Path.home() / config["data"]).resolve()
+    # Resolve path to dataset YAML
+    if config["data"] is None:
+        data_yaml_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
+    else:
+        data_yaml_path = (Path.home() / config["data"]).resolve()
+    if not data_yaml_path.exists():
+        raise FileNotFoundError(f"Dataset configuration file not found: {data_yaml_path}")
+    print(f"Using dataset: {data_yaml_path}")
+
+    # Train the model
     results = model.train(
+        project=runs_dir, 
+        device=device,   
+        name=config.get("name", "experiment"), 
         data=data_yaml_path,
         epochs=config["epochs"],
         imgsz=config["imgsz"],
         batch=config["batch"],
-        device=device,
-        lr0=config.get("lr0", 0.01),  # Use configured learning rate or default to 0.01
+        lr0=config["lr0"],  # Use configured learning rate or default to 0.01
     )
 
     # Validate after training
     metrics = model.val()
-    print("✅ Validation complete. Metrics:")
-    print(metrics)
-
-    # Locate best.pt from training run
-    run_dir = Path(results.save_dir)
-    best_weights = run_dir / "weights" / "best.pt"
-    dest = Path(__file__).resolve().parents[1] / "models" / "best.pt"
-
-    # Copy best.pt to central models folder
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if best_weights.exists():
-        shutil.copy(best_weights, dest)
-        print(f"📦 Best model saved to {dest}")
-    else:
-        print("⚠️ best.pt not found, something went wrong with training output.")
-
+    # Print most important metrics
+    print("\nMetrics:")
+    print(f"  mAP50: {metrics.box.map50:.4f}")
+    print(f"  mAP50-95: {metrics.box.map:.4f}")
+    print(f"  Precision: {metrics.box.mp:.4f}")
+    print(f"  Recall: {metrics.box.mr:.4f}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train YOLO model with custom config")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="training_config_default.yaml",
+        help="Name of the config YAML file. Must be in training directory (default: training_config_default.yaml)."
+    )
+    args = parser.parse_args()
+    
+    # Update config path to use command line argument
+    config_path = (ROOT_DIR / "training" / args.config).resolve()
+    train_yolo_model(config_path)
