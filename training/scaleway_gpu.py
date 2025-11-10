@@ -97,11 +97,7 @@ class ScalewayGPU:
 		"""
 		state = self.status()
 		if state in ("running", "starting"):
-			if state == "starting":
-				self._log("Instance is currently starting; start skipped.")
-			else:
-				self._log("Instance already running; start skipped.")
-			return {"skipped": True, "state": state, "message": "Instance already running or starting"}
+			return self._handle_already_running(state)
 
 		if state == "stopping" and wait_if_stopping:
 			self._log("Instance is currently stopping; waiting for 'stopped' before starting...")
@@ -118,11 +114,7 @@ class ScalewayGPU:
 			if e.code in (400, 409):  # conflict / invalid transition
 				cur = self.status()
 				if cur in ("running", "starting"):
-					if cur == "starting":
-						self._log("Instance is currently starting; start skipped.")
-					else:
-						self._log("Instance already running; start skipped.")
-					return {"skipped": True, "state": cur, "message": "Instance already running or starting"}
+					return self._handle_already_running(cur)
 				if cur == "stopping" and wait_if_stopping:
 					# One more wait attempt, then retry once
 					self._log("Instance is currently stopping; waiting again for 'stopped' before retrying poweron...")
@@ -137,11 +129,7 @@ class ScalewayGPU:
 		"""Power off the instance (async). Idempotent if already stopped/stopping."""
 		state = self.status()
 		if state in ("stopped", "stopping"):
-			if state == "stopping":
-				self._log("Instance is currently stopping; stop skipped.")
-			else:
-				self._log("Instance already stopped; stop skipped.")
-			return {"skipped": True, "state": state, "message": "Instance already stopped or stopping"}
+			return self._handle_already_stopped(state)
 		try:
 			self._log("Sending poweroff action...")
 			return self._action("poweroff")
@@ -149,11 +137,7 @@ class ScalewayGPU:
 			if e.code in (400, 409):
 				cur = self.status()
 				if cur in ("stopped", "stopping"):
-					if cur == "stopping":
-						self._log("Instance is currently stopping; stop skipped.")
-					else:
-						self._log("Instance already stopped; stop skipped.")
-					return {"skipped": True, "state": cur, "message": "Instance already stopped or stopping"}
+					return self._handle_already_stopped(cur)
 			raise
 
 	def status(self) -> str:
@@ -197,6 +181,16 @@ class ScalewayGPU:
 	# ------------------------------------------------------------------
 	# Internal helpers
 	# ------------------------------------------------------------------
+	def _handle_already_running(self, state: str) -> Dict[str, Any]:
+		msg = "starting" if state == "starting" else "running"
+		self._log(f"Instance is currently {msg}; start skipped.")
+		return {"skipped": True, "state": state, "message": "Instance already running or starting"}
+
+	def _handle_already_stopped(self, state: str) -> Dict[str, Any]:
+		msg = "stopping" if state == "stopping" else "stopped"
+		self._log(f"Instance is currently {msg}; stop skipped.")
+		return {"skipped": True, "state": state, "message": "Instance already stopped or stopping"}
+
 	def _action(self, action: str) -> Dict[str, Any]:
 		path = f"/instance/v1/zones/{self.zone}/servers/{self.server_id}/action"
 		return self._request("POST", path, {"action": action})
@@ -215,13 +209,14 @@ class ScalewayGPU:
 			attempt += 1
 			req = urllib.request.Request(url, data=data, headers=headers, method=method)
 			try:
-				with urllib.request.urlopen(req) as resp:  # pragma: no cover - network
+				with urllib.request.urlopen(req, timeout=30) as resp:  # pragma: no cover - network
 					raw = resp.read()
 					return json.loads(raw.decode()) if raw else {}
 			except urllib.error.HTTPError as e:  # pragma: no cover - network
 				# Retry on 5xx and 429 (rate limit). Otherwise raise immediately.
 				if e.code in (429,) or 500 <= e.code < 600:
 					if attempt < self.max_retries:
+						self._log(f"HTTP error {e.code}, retrying (attempt {attempt}/{self.max_retries})...")
 						self._backoff_sleep(attempt)
 						continue
 					else:

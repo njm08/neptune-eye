@@ -48,10 +48,10 @@ def train_yolo_model(training_config: str) -> None:
     model = YOLO(config["model"])
 
     # Resolve path to dataset YAML
-    if config["data"] is None:
+    if config.get("data") is None:
         data_yaml_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
     else:
-        data_yaml_path = (Path.home() / config["data"]).resolve()
+        data_yaml_path = (ROOT_DIR / config["data"]).resolve()
     if not data_yaml_path.exists():
         raise FileNotFoundError(f"Dataset configuration file not found: {data_yaml_path}")
     print(f"Using dataset: {data_yaml_path}")
