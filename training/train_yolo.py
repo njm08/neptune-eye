@@ -41,8 +41,8 @@ def train_yolo_model(training_config: str) -> None:
     print(f"Using device: {device}")
     print(config)
     
-    # Set directory for saving runs
-    runs_dir = ROOT_DIR / "runs" / "train"
+    # Set directory for saving the experiment runs
+    run_dir_experiment = ROOT_DIR / "runs" / config.get("name", "experiment")
 
     # Load pre-trained YOLOv11 model
     model = YOLO(config["model"])
@@ -58,14 +58,14 @@ def train_yolo_model(training_config: str) -> None:
 
     # Train the model
     results = model.train(
-        project=runs_dir, 
-        device=device,   
-        name=config.get("name", "experiment"), 
+        project=run_dir_experiment, 
+        device=device,  
         data=data_yaml_path,
         epochs=config["epochs"],
         imgsz=config["imgsz"],
         batch=config["batch"],
         lr0=config["lr0"],  # Use configured learning rate or default to 0.01
+        fraction=config["fraction"]
     )
 
     # Validate after training
