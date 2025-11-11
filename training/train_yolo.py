@@ -1,31 +1,91 @@
-# training/train.py
+""" Train YOLO model with configurable options.
 
+You can either train locally or on a Scaleway GPU instance.
+
+"""
+
+from logging import config
 import torch
 from ultralytics import YOLO
-import shutil
 from pathlib import Path
 import yaml
 import argparse
 
+# Root directory of the project
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-def get_device():
-    """Detect the best available device: CUDA > MPS > CPU."""
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():  # For Apple Silicon (M1/M2)
-        return "mps"
-    else:
-        return "cpu"
+class TrainingConfig:
+    """Store and validate training configuration."""
+    
+    def __init__(self, config_path: Path) -> None:
+        """Initialize configuration from dictionary.
+        
+        Args:
+            config_path (str): Path to the configuration YAML file.
+        """
 
+        # Load config from YAML
+        config_dict = {}
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                config_dict = yaml.safe_load(f)
+        else:
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        
+        # Set configurations directly from the YAML file.
+        self.model = config_dict["model"]
+        self.epochs = config_dict.get("epochs", 100)
+        self.imgsz = config_dict.get("imgsz", 640)
+        self.batch = config_dict.get("batch", 4)
+        self.lr0 = config_dict.get("lr0", 0.01)
+        self.fraction = config_dict.get("fraction", 1.0)
 
-def load_config(config_path: str):
-    """Load training configuration from a YAML file."""
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+        # Some configurations need to be resolved with some logic:
+        # Detect device
+        self.device = self._get_device()
+        # Resolve path to dataset YAML
+        self.data = config_dict.get("data")
+        if self.data is None:
+            self.data_yaml_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
+        else:
+            self.data_yaml_path = (ROOT_DIR / config["data"]).resolve()
+        if not self.data_yaml_path.exists():
+            raise FileNotFoundError(f"Dataset configuration file not found: {data_yaml_path}")
+        # Set directory for saving the experiment runs
+        self.experiment_dir = ROOT_DIR / "runs" / config_dict.get("name", "experiment")
 
+        # Print the configuration
+        self._print_config()
 
-def train_yolo_model(training_config: str) -> None:
+        
+    def _print_config(self) -> None:
+        """ Print the configuration.
+        """
+        print("\nTraining Configuration:")
+        print(f"  Name: {self.name}")
+        print(f"  Model: {self.model}")
+        print(f"  Epochs: {self.epochs}")
+        print(f"  Image size: {self.imgsz}")
+        print(f"  Batch size: {self.batch}")
+        print(f"  Learning rate: {self.lr0}")
+        print(f"  Fraction: {self.fraction}")
+        print(f"  Device: {self.device}")
+        print(f"  Data: {self.data}")
+        print(f"  Experiment directory: {self.experiment_dir}\n")
+
+    def _get_device(self) -> str:
+        """Detect the best available device: CUDA > MPS > CPU.
+         Returns:
+            str: Device string for PyTorch.
+        """
+        if torch.cuda.is_available():
+            return "cuda"
+        elif torch.backends.mps.is_available():  # For Apple Silicon (M1/M2)
+            return "mps"
+        else:
+            return "cpu"
+
+def train_yolo_model(training_config_path: str) -> None:
     """Train YOLO model based on the provided configuration.
 
     Args:
@@ -33,39 +93,22 @@ def train_yolo_model(training_config: str) -> None:
     """
 
     # Load config
-    print(f"Loading config from: {training_config}")
-    config = load_config(training_config)
-
-    # Detect device
-    device = get_device()
-    print(f"Using device: {device}")
-    print(config)
-    
-    # Set directory for saving the experiment runs
-    run_dir_experiment = ROOT_DIR / "runs" / config.get("name", "experiment")
+    print(f"Loading config from: {training_config_path}")
+    training_config = TrainingConfig(training_config_path)
 
     # Load pre-trained YOLOv11 model
-    model = YOLO(config["model"])
-
-    # Resolve path to dataset YAML
-    if config.get("data") is None:
-        data_yaml_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
-    else:
-        data_yaml_path = (ROOT_DIR / config["data"]).resolve()
-    if not data_yaml_path.exists():
-        raise FileNotFoundError(f"Dataset configuration file not found: {data_yaml_path}")
-    print(f"Using dataset: {data_yaml_path}")
+    model = YOLO(training_config.model)
 
     # Train the model
     results = model.train(
-        project=run_dir_experiment, 
-        device=device,  
-        data=data_yaml_path,
-        epochs=config["epochs"],
-        imgsz=config["imgsz"],
-        batch=config["batch"],
-        lr0=config["lr0"],  # Use configured learning rate or default to 0.01
-        fraction=config["fraction"]
+        project=training_config.experiment_dir, 
+        device=training_config.device,  
+        data=training_config.data_yaml_path,
+        epochs=training_config.epochs,
+        imgsz=training_config.imgsz,
+        batch=training_config.batch,
+        lr0=training_config.lr0,  # Use configured learning rate or default to 0.01
+        fraction=training_config.fraction
     )
 
     # Validate after training
