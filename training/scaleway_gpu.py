@@ -186,6 +186,87 @@ class ScalewayGPU:
 		self.stop()
 		return self.wait_for("stopped")
 
+	def run_command(
+		self,
+		command: str,
+		timeout: int = 60
+	) -> Dict[str, Any]:
+		"""Execute a command on the instance via SSH.
+
+		Parameters
+		----------
+		command : str
+			The command to execute on the remote instance.
+			Path to SSH private key. If None, uses default SSH key resolution.
+		timeout : int
+			Command timeout in seconds (default: 60).
+
+		Returns
+		-------
+		Dict[str, Any]
+			Dictionary with 'stdout', 'stderr', 'returncode', and 'success' keys.
+
+		Raises
+		------
+		RuntimeError
+			If instance is not running or cannot retrieve IP address.
+		"""
+		import subprocess
+
+		# Ensure instance is running
+		state = self.status()
+		if state != "running":
+			raise RuntimeError(f"Instance must be running to execute commands (current state: {state})")
+
+		# Get instance IP address
+		path = f"/instance/v1/zones/{self.zone}/servers/{self.server_id}"
+		data = self._request("GET", path)
+		server = data.get("server", {}) if isinstance(data, dict) else {}
+		public_ip = server.get("public_ip", {}).get("address") if server.get("public_ip") else None
+		
+		if not public_ip:
+			raise RuntimeError("Could not retrieve instance public IP address")
+
+		# Build SSH command
+		ssh_cmd = [
+			"ssh"
+		]
+		ssh_cmd.append(f"root@{public_ip}")
+		ssh_cmd.append(command)
+
+		self._log(f"Executing command on {public_ip}: {command}")
+
+		try:
+			result = subprocess.run(
+				ssh_cmd,
+				capture_output=True,
+				text=True,
+				timeout=timeout
+			)
+			
+			return {
+				"stdout": result.stdout,
+				"stderr": result.stderr,
+				"returncode": result.returncode,
+				"success": result.returncode == 0
+			}
+		except subprocess.TimeoutExpired as e:
+			return {
+				"stdout": e.stdout.decode() if e.stdout else "",
+				"stderr": e.stderr.decode() if e.stderr else "",
+				"returncode": -1,
+				"success": False,
+				"error": f"Command timed out after {timeout} seconds"
+			}
+		except Exception as e:
+			return {
+				"stdout": "",
+				"stderr": str(e),
+				"returncode": -1,
+				"success": False,
+				"error": str(e)
+			}
+
 	# ------------------------------------------------------------------
 	# Internal helpers
 	# ------------------------------------------------------------------
