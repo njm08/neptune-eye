@@ -1,7 +1,6 @@
 """ Train YOLO model with configurable options.
 
 You can either train locally or on a Scaleway GPU instance.
-
 """
 
 from logging import config
@@ -33,36 +32,52 @@ class TrainingConfig:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
         # Set configurations directly from the YAML file.
-        self.model = config_dict["model"]
         self.epochs = config_dict.get("epochs", 100)
         self.imgsz = config_dict.get("imgsz", 640)
         self.batch = config_dict.get("batch", 4)
         self.lr0 = config_dict.get("lr0", 0.01)
         self.fraction = config_dict.get("fraction", 1.0)
+        self.train_on_scaleway_gpu = config_dict.get("scaleway_gpu", False)
 
         # Some configurations need to be resolved with some logic:
         # Detect device
         self.device = self._get_device()
+
+        # Resolve the model name or path
+        self.model = config_dict["model"]
+        # Check if model is a path (contains path separators or file extensions)
+        if "/" in self.model or "\\" in self.model:
+            model_path = Path(self.model)
+            # If it's not absolute, make it relative to ROOT_DIR
+            if not model_path.is_absolute():
+                self.model = (ROOT_DIR / model_path).resolve()
+            else:
+                self.model = model_path.resolve()
+            # Verify the model file exists
+            if not Path(self.model).exists():
+                raise FileNotFoundError(f"Model file not found: {self.model}")
+        elif str(self.model).startswith("yolo"):
+            print(f"Using YOLO Hub model: {self.model}")
+
         # Resolve path to dataset YAML
-        self.data = config_dict.get("data")
-        if self.data is None:
-            self.data_yaml_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
+        dataset_config = config_dict.get("data")
+        if dataset_config is None:
+            self.dataset_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
         else:
-            self.data_yaml_path = (ROOT_DIR / config["data"]).resolve()
-        if not self.data_yaml_path.exists():
-            raise FileNotFoundError(f"Dataset configuration file not found: {data_yaml_path}")
+            self.dataset_path = (ROOT_DIR / config["data"]).resolve()
+        if not self.dataset_path.exists():
+            raise FileNotFoundError(f"Dataset configuration file not found: {self.dataset_path}")
         # Set directory for saving the experiment runs
-        self.experiment_dir = ROOT_DIR / "runs" / config_dict.get("name", "experiment")
+        self.experiment_dir = ROOT_DIR / "runs" / config_dict.get("name", "default")
 
         # Print the configuration
         self._print_config()
 
-        
+
     def _print_config(self) -> None:
         """ Print the configuration.
         """
         print("\nTraining Configuration:")
-        print(f"  Name: {self.name}")
         print(f"  Model: {self.model}")
         print(f"  Epochs: {self.epochs}")
         print(f"  Image size: {self.imgsz}")
@@ -70,8 +85,9 @@ class TrainingConfig:
         print(f"  Learning rate: {self.lr0}")
         print(f"  Fraction: {self.fraction}")
         print(f"  Device: {self.device}")
-        print(f"  Data: {self.data}")
+        print(f"  Dataset: {self.dataset_path}")
         print(f"  Experiment directory: {self.experiment_dir}\n")
+        print(f"  Train on Scaleway GPU: {self.train_on_scaleway_gpu}\n")
 
     def _get_device(self) -> str:
         """Detect the best available device: CUDA > MPS > CPU.
@@ -96,14 +112,17 @@ def train_yolo_model(training_config_path: str) -> None:
     print(f"Loading config from: {training_config_path}")
     training_config = TrainingConfig(training_config_path)
 
-    # Load pre-trained YOLOv11 model
+    # Load the dataset
+    # TODO
+
+    # Load pre-trained YOLOv11 model. The model is downloaded from Ultralytics.
     model = YOLO(training_config.model)
 
     # Train the model
     results = model.train(
         project=training_config.experiment_dir, 
         device=training_config.device,  
-        data=training_config.data_yaml_path,
+        data=training_config.dataset_path,
         epochs=training_config.epochs,
         imgsz=training_config.imgsz,
         batch=training_config.batch,
