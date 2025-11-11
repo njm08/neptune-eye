@@ -1,6 +1,4 @@
 """ Train YOLO model with configurable options.
-
-You can either train locally or on a Scaleway GPU instance.
 """
 
 from logging import config
@@ -9,6 +7,7 @@ from ultralytics import YOLO
 from pathlib import Path
 import yaml
 import argparse
+
 
 # Root directory of the project
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +36,6 @@ class TrainingConfig:
         self.batch = config_dict.get("batch", 4)
         self.lr0 = config_dict.get("lr0", 0.01)
         self.fraction = config_dict.get("fraction", 1.0)
-        self.train_on_scaleway_gpu = config_dict.get("scaleway_gpu", False)
 
         # Some configurations need to be resolved with some logic:
         # Detect device
@@ -87,7 +85,6 @@ class TrainingConfig:
         print(f"  Device: {self.device}")
         print(f"  Dataset: {self.dataset_path}")
         print(f"  Experiment directory: {self.experiment_dir}\n")
-        print(f"  Train on Scaleway GPU: {self.train_on_scaleway_gpu}\n")
 
     def _get_device(self) -> str:
         """Detect the best available device: CUDA > MPS > CPU.
@@ -101,19 +98,29 @@ class TrainingConfig:
         else:
             return "cpu"
 
-def train_yolo_model(training_config_path: str) -> None:
+def run_training(training_config_path: str) -> None:
+    """Run the training process.
+    
+    Args:
+        training_config_path (str): Path to the training configuration YAML file.
+    """
+    
+    print(f"Loading config from: {training_config_path}")
+    training_config = TrainingConfig(training_config_path)
+    load_dataset(training_config)
+    train_yolo_model(training_config)
+
+def load_dataset(config: TrainingConfig) -> None:
+    """Load the dataset.
+    """
+    
+
+def train_yolo_model(training_config: TrainingConfig) -> None:
     """Train YOLO model based on the provided configuration.
 
     Args:
-        training_config (str): Path to the training configuration YAML file.
+        training_config (TrainingConfig): Training configuration.
     """
-
-    # Load config
-    print(f"Loading config from: {training_config_path}")
-    training_config = TrainingConfig(training_config_path)
-
-    # Load the dataset
-    # TODO
 
     # Load pre-trained YOLOv11 model. The model is downloaded from Ultralytics.
     model = YOLO(training_config.model)
@@ -151,4 +158,4 @@ if __name__ == "__main__":
     
     # Update config path to use command line argument
     config_path = (ROOT_DIR / "training" / args.config).resolve()
-    train_yolo_model(config_path)
+    run_training(config_path)

@@ -34,7 +34,6 @@ __all__ = ["ScalewayGPU"]
 
 _DEFAULT_ZONE = "fr-par-1"
 
-
 class ScalewayGPU:
 	def __init__(
 		self,
@@ -81,6 +80,15 @@ class ScalewayGPU:
 		if not self.server_id:
 			raise ValueError("SCW_SERVER_ID is required")
 
+	def __enter__(self) -> ScalewayGPU:
+		"""Context manager entry: returns self."""
+		return self
+
+	def __exit__(self, _exc_type, _exc_val, _exc_tb) -> None:
+		"""Context manager exit: stops the instance."""
+		self._log("Exiting context; stopping instance...")
+		self.stop()
+	
 	# ------------------------------------------------------------------
 	# Public API
 	# ------------------------------------------------------------------
