@@ -21,12 +21,11 @@ def build_docker_inference(push: bool = False) -> None:
     """
 
     # Detect if running inside GitHub Actions.
-    # When building in CI, use caching to speed up builds.
     is_ci = os.getenv("GITHUB_ACTIONS") == "true"
     if is_ci:
         docker_image = f"ghcr.io/{IMAGE_NAME}"
         tag = TAG
-        load_image = True
+        load_image = False
         print("Running inside GitHub Actions — using build with cache.")
     else:
         docker_image = IMAGE_NAME

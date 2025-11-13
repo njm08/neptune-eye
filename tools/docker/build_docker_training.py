@@ -10,7 +10,7 @@ DOCKER_FILE: str = 'Dockerfile.training'
 
 if __name__ == "__main__":
         build_docker(
-        docker_file=DOCKER_FILE,
+        dockerfile=DOCKER_FILE,
         dockerimage=IMAGE_NAME,
         tag=TAG,
         platforms=["linux/amd64", "linux/arm64"])
