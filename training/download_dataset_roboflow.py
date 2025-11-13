@@ -2,24 +2,24 @@
 """
 import os
 from pathlib import Path
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 from roboflow import Roboflow
 
 # Load environment variables from .env file
 root_dir = Path(__file__).parent.parent
-# env_path = root_dir / ".env"
-# if env_path.exists():
-#     load_dotenv(dotenv_path=env_path)
-# else: 
-#     raise FileNotFoundError(".env file not found at project root.")
+env_path = root_dir / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else: 
+    raise FileNotFoundError(".env file not found at project root.")
 
 # Get API key from environment
-# api_key = os.getenv("ROBOFLOW_API_KEY")
-# if not api_key:
-#     raise ValueError("ROBOFLOW_API_KEY not found in .env file")
+api_key = os.getenv("ROBOFLOW_API_KEY")
+if not api_key:
+     raise ValueError("ROBOFLOW_API_KEY not found in .env file")
 
 try: 
-    rf = Roboflow(api_key="6DaO7Ncq2dJDFDWfIqup")
+    rf = Roboflow(api_key=api_key)
 except Exception as e:
     raise ConnectionError("Failed to connect to Roboflow. Check your API key and internet connection.") from e
 
