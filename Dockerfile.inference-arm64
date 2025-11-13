@@ -1,5 +1,5 @@
-# Use ultralytics base image for AMD64
-FROM ultralytics/ultralytics:8.3.225-python
+# Use ultralytics base image for ARM64
+FROM ultralytics/ultralytics:8.3.223-arm64
 
 # Install missing python packages and FFMPEG
 RUN apt-get update && apt-get install -y \
