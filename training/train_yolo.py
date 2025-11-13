@@ -66,7 +66,7 @@ class TrainingConfig:
         if not self.dataset_path.exists():
             raise FileNotFoundError(f"Dataset configuration file not found: {self.dataset_path}")
         # Set directory for saving the experiment runs
-        self.experiment_dir = ROOT_DIR / "runs" / config_dict.get("name", "default")
+        self.experiment_dir = (ROOT_DIR / "runs" / config_dict.get("name", "default")).resolve()
 
         # Print the configuration
         self._print_config()
@@ -127,7 +127,7 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
 
     # Train the model
     results = model.train(
-        project=training_config.experiment_dir, 
+        project="test_gpu", 
         device=training_config.device,  
         data=training_config.dataset_path,
         epochs=training_config.epochs,
