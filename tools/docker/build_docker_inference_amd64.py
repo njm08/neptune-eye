@@ -25,7 +25,7 @@ def build_docker_inference(push: bool = False) -> None:
     if is_ci:
         docker_image = f"ghcr.io/{IMAGE_NAME}"
         tag = TAG
-        load_image = False
+        load_image = True
         print("Running inside GitHub Actions — using build with cache.")
     else:
         docker_image = IMAGE_NAME
