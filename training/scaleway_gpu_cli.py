@@ -48,13 +48,20 @@ Examples:
   %(prog)s start              Start the GPU instance and wait until is is running
   %(prog)s stop               Stop the GPU instance (async)
   %(prog)s stop-and-wait      Stop and wait until stopped
+  %(prog)s run "ls -la"       Run a command on the instance
         """
     )
     
     parser.add_argument(
         "command",
-        choices=["start", "stop", "start-and-wait", "stop-and-wait"],
+        choices=["start", "stop", "start-and-wait", "stop-and-wait", "run"],
         help="Command to execute"
+    )
+    
+    parser.add_argument(
+        "cmd",
+        nargs="?",
+        help="Remote command to execute (required for 'run' command)"
     )
     
     parser.add_argument(
@@ -64,6 +71,10 @@ Examples:
     )
     
     args = parser.parse_args()
+    
+    # Validate run command requires cmd argument
+    if args.command == "run" and not args.cmd:
+        parser.error("'run' command requires a command argument")
     
     # Load environment variables
     load_env()
@@ -107,7 +118,18 @@ Examples:
                 print("✗ Timeout: Instance did not reach 'stopped' state", file=sys.stderr)
                 sys.exit(1)
         
-        print(f"Final status: {gpu.status()}")
+        elif args.command == "run":
+            print(f"Running command: {args.cmd}")
+            result = gpu.run_command(args.cmd)
+            if result.get("stdout"):
+                print(result["stdout"], end="")
+            if result.get("stderr"):
+                print(result["stderr"], end="", file=sys.stderr)
+            if not result.get("success"):
+                sys.exit(result.get("returncode", 1))
+        
+        if args.command != "run":
+            print(f"Final status: {gpu.status()}")
         
     except Exception as e:
         print(f"Error executing command: {e}", file=sys.stderr)
