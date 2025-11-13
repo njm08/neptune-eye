@@ -1,6 +1,6 @@
 # Training configuration
 
-name: "yolo11s_v0_1_0"       # Experiment name (use descriptive names like 'yolo11n_v1', 'high_lr_test')
+name: "gpu_test"       # Experiment name (use descriptive names like 'yolo11n_v1', 'high_lr_test')
 dataset: null                # Absolute path to dataset configuration. If null, uses dataset found in data folder.
 model: "models/pytorch/yolo11s.pt"          # Pretrained model. Either a path or a model name from the YOLO Hub
 epochs: 200                  # Number of training epochs
