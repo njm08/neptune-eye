@@ -1,0 +1,16 @@
+"""
+Build Docker image for training.
+"""
+
+from build_docker_util import build_docker
+
+IMAGE_NAME: str = 'njm08/neptune-eye'
+TAG: str = 'latest-training-amd64'
+DOCKER_FILE: str = 'Dockerfile.training-amd64'
+
+if __name__ == "__main__":
+        build_docker(
+        dockerfile=DOCKER_FILE,
+        dockerimage=IMAGE_NAME,
+        tag=TAG,
+        platforms=["linux/amd64"])
