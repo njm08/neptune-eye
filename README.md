@@ -31,31 +31,34 @@ _Neptune Eye detecting other sailboats and buoys_
 
 ## Docker
 
-The application can be run in Docker images. This way you do not need to install the dependencies locally.
-There are several Docker images provided. They are based on the Docker images provided by _Ultralytics_.
+The application can be run in Docker containers. There are several Docker images provided for different architectures and purposes (training, inference). They are based on the Docker images provided by _Ultralytics_.
 
-- __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support.
+- __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support and is for training and inference.
 
 ```shell
 python3 tools/docker/build_docker_jetpack6.py
 ```
 
-- __Inference__: Image for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs).
+- __Inference (AMD64 and ARM64)__: Images for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs). This is used in the CI-pipeline to run and test the application.
 
 ```shell
-python3 tools/docker/build_docker_inference.py
+python3 tools/docker/build_docker_inference_amd64.py
 ```
 
-- __Training__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
+```shell
+python3 tools/docker/build_docker_inference_arm64.py
+```
+
+- __Training (AMD64)__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
 
 ```shell
-python3 tools/docker/build_docker_training.py
+python3 tools/docker/build_docker_training_amd64.py
 ```
 
 __Limitations__:
 
-- GUI is tricky when running in Docker image. Use the default headless mode for a stable run.
-- No GPU support for Mac M1/M2/M3 when running in Docker container. For GPU support you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
+- GUI support is tricky when running the application in Docker containers. Use the default headless mode for a stable run.
+- No GPU support for Mac M1/M2/M3 when running inference in Docker container. For GPU support during inference you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
   
 ## License
 
