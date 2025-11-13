@@ -9,8 +9,8 @@ import argparse
 from build_docker_util import build_docker
 
 IMAGE_NAME: str = 'njm08/neptune-eye'
-TAG: str = 'latest-inference'
-DOCKER_FILE: str = 'Dockerfile.inference'
+TAG: str = 'latest-inference-amd64'
+DOCKER_FILE: str = 'Dockerfile.inference-amd64'
 
 def build_docker_inference(push: bool = False) -> None:
     """
@@ -36,7 +36,7 @@ def build_docker_inference(push: bool = False) -> None:
         dockerfile=DOCKER_FILE,
         dockerimage=docker_image,
         tag=tag,
-        platforms=["linux/amd64", "linux/arm64"],
+        platforms=["linux/amd64"],
         load=load_image
     )
     
