@@ -26,4 +26,4 @@ jobs:
 
       - name: Build & Push Docker Image
         run: |
-          python3 tools/docker/build_docker_amd64.py --push
+          python3 tools/docker/build_docker_inference.py --push

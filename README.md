@@ -32,7 +32,7 @@ _Neptune Eye detecting other sailboats and buoys_
 ## Docker
 
 The application can be run in Docker images. This way you do not need to install the dependencies locally.
-There are two Docker images provided. They are based on the Docker images provided by _Ultralytics_.
+There are several Docker images provided. They are based on the Docker images provided by _Ultralytics_.
 
 - __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support.
 
@@ -40,22 +40,21 @@ There are two Docker images provided. They are based on the Docker images provid
 python3 tools/docker/build_docker_jetpack6.py
 ```
 
-- __Arm64__: Image for running on ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi.
+- __Inference__: Image for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs).
 
 ```shell
-python3 tools/docker/build_docker_arm64.py
+python3 tools/docker/build_docker_inference.py
 ```
 
-- __Amd64__: Image for running on x86 architectures (Intel and AMD CPUs). This image is used for the testing in the CI-pipelines for example.
-It has a minimal python environment and is for inference only.
+- __Training__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
 
 ```shell
-python3 tools/docker/build_docker_amd64.py
+python3 tools/docker/build_docker_training.py
 ```
 
 __Limitations__:
 
-- GUI is not supported when running in Docker image. Use the default headless mode.
+- GUI is tricky when running in Docker image. Use the default headless mode for a stable run.
 - No GPU support for Mac M1/M2/M3 when running in Docker container. For GPU support you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
   
 ## License
