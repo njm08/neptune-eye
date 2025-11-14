@@ -19,7 +19,7 @@ class TrainingConfig:
         """Initialize configuration from dictionary.
         
         Args:
-            config_path (str): Path to the configuration YAML file.
+            config_path (Path): Path to the configuration YAML file.
         """
 
         # Load config from YAML
@@ -60,9 +60,9 @@ class TrainingConfig:
 
         # Resolve path to dataset YAML
         dataset_config = config_dict.get("data")
-        if dataset_config is None:
+        if dataset_config is None: # No path set, so use the default path.
             self.dataset_path = (ROOT_DIR / "data" / "data.yaml").resolve()
-        else:
+        else: # Set the path relative to the root diretory.
             self.dataset_path = (ROOT_DIR / config["data"]).resolve()
         if not self.dataset_path.exists():
             raise FileNotFoundError(f"Dataset configuration file not found: {self.dataset_path}")
@@ -126,7 +126,7 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
     # Load pre-trained YOLOv11 model.
     model = YOLO(training_config.model)
 
-    # Create output directory for YOLO runsif it doesn't exist
+    # Create output directory for YOLO runs if it doesn't exist
     output_path = ROOT_DIR / "output" / "runs"
     output_path.mkdir(parents=True, exist_ok=True)
 

@@ -21,4 +21,5 @@ python3 scaleway_gpu_cli.py ssh
 
 # Store the results SOMEWHERE. :)
 # Turn off the instance.
-# Uncomment when ready: python3 scaleway_gpu_cli.py stop-and-wait -v
+# TODO Uncomment when ready: python3 scaleway_gpu_cli.py stop-and-wait -v
+# python3 scaleway_gpu_cli.py stop-and-wait -v

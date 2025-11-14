@@ -14,7 +14,7 @@ if env_path.exists():
 # Get API key from environment
 api_key = os.getenv("ROBOFLOW_API_KEY")
 if not api_key:
-     raise ValueError("ROBOFLOW_API_KEY not found in .env file")
+    raise ValueError("ROBOFLOW_API_KEY not found in .env file")
 
 try: 
     rf = Roboflow(api_key=api_key)

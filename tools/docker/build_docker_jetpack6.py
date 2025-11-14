@@ -10,8 +10,8 @@ DOCKER_FILE: str = 'Dockerfile.jetpack6'
 PLATFORM = ["linux/arm64"]
 
 if __name__ == "__main__":
-    push = parse_for_push()
-    load = False
+    push: bool = parse_for_push()
+    load: bool = False
     if push and is_github_ci():
         load = True
     build_docker(dockerfile=DOCKER_FILE, dockerimage=IMAGE_NAME, tag=TAG, platforms=PLATFORM, load=load)

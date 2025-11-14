@@ -81,19 +81,19 @@ def detect_architecture() -> Architecture:
                 content = f.read()
                 # JetPack 6.x detection
                 if 'R36' in content or 'R37' in content:
-                    return 'jetpack6'
-        except:
+                    return Architecture.JETPACK6
+        except (IOError, OSError):
             pass
-        architecture = Architecture.JETPACK6
+        # Default to JETPACK6 if we can't determine version
+        architecture = Architecture.JETPACK6    
     
     # Check for ARM64 architecture
-    if machine in ['arm64', 'aarch64']:
+    elif machine in ['arm64', 'aarch64']:
         architecture = Architecture.ARM64
-
     # Check for x86_64/AMD64
-    if machine in ['x86_64', 'amd64']:
+    elif machine in ['x86_64', 'amd64']:
         architecture = Architecture.X86_64
-    
+
     print(f"Detected architecture: {architecture.value}")
     
     return architecture
@@ -103,7 +103,8 @@ def tag_and_push_image(dockerimage: str, tag: str, registry: str) -> None:
 
        Args:
           dockerimage (str): Name of the Docker image.
-          tag (str): Image tag
+          tag (str): Image tag.
+          registry (str): Registry URL (e.g., 'ghcr.io', 'rg.fr-par.scw.cloud').
      """
     registry_image_name = f'{registry}/{dockerimage}:{tag}'
     print(f"Tagging image as {registry_image_name}")

@@ -29,11 +29,21 @@ _Neptune Eye detecting other sailboats and buoys_
 
 - Blog: <https://njm08.github.io/>
 
+## Model Training
+
+### Cloud
+
+It is possible to train the model on a cloud instance. 
+
+## Performance Tracking
+
+Track the performance using MLFlow. 
+
 ## Docker
 
 The application can be run in Docker containers. There are several Docker images provided for different architectures and purposes (training, inference). They are based on the Docker images provided by _Ultralytics_.
 
-- __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support and is for training and inference.
+- __Jetpack 6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support and is for training and inference.
 
 - __Inference (AMD64 and ARM64)__: Images for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs). This is used in the CI-pipeline to run and test the application.
 
