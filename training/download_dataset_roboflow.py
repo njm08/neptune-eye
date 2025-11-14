@@ -10,8 +10,6 @@ root_dir = Path(__file__).parent.parent
 env_path = root_dir / ".env"
 if env_path.exists():
     load_dotenv(dotenv_path=env_path)
-else: 
-    raise FileNotFoundError(".env file not found at project root.")
 
 # Get API key from environment
 api_key = os.getenv("ROBOFLOW_API_KEY")
