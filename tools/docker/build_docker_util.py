@@ -28,9 +28,19 @@ def find_project_root() -> Path:
             return parent
     raise FileNotFoundError("Could not locate project root")
 
-def build_docker(dockerfile: str, dockerimage:str, tag: str, platforms: list[str], load: bool = False) -> None:
+def build_docker(dockerfile: str,
+                 dockerimage: str, tag: str,
+                 platforms: list[str],
+                 load: bool = False) -> None:
     """
     Build the docker image.
+
+    Args:
+        dockerfile (str): Path to the Dockerfile.
+        dockerimage (str): Name of the Docker image.
+        tag (str): Image tag.
+        platforms (list[str]): List of target platforms.
+        load (bool): Whether to load the image into local Docker after build.
     """
 
     image_name = f"{dockerimage}:{tag}"

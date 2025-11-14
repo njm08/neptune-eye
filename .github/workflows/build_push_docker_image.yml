@@ -24,7 +24,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push Docker Image
+      - name: Build & Push AMD64
         run: |
           python3 tools/docker/build_docker_inference_amd64.py --push
-          python3 tools/docker/build_docker_inference_jetpack6.py --push
+          
+      - name: Build & Push ARM64
+        run: |
+          python3 tools/docker/build_docker_inference_arm64.py --push
+
+      - name: Build & Push JetPack6
+        run: |
+          python3 tools/docker/build_docker_jetpack6.py --push

@@ -10,7 +10,7 @@ DOCKER_FILE: str = 'Dockerfile.training-amd64'
 PLATFORM = ["linux/amd64"]
 
 if __name__ == "__main__":
-        push = parse_for_push()
-        build_docker(dockerfile=DOCKER_FILE, dockerimage=IMAGE_NAME, tag=TAG, platforms=PLATFORM)
-        if push:
-            tag_and_push_image(dockerimage=IMAGE_NAME, tag=TAG, registry=REGISTRY_SCALEWAY)
+    push = parse_for_push()
+    build_docker(dockerfile=DOCKER_FILE, dockerimage=IMAGE_NAME, tag=TAG, platforms=PLATFORM)
+    if push:
+        tag_and_push_image(dockerimage=IMAGE_NAME, tag=TAG, registry=REGISTRY_SCALEWAY)
