@@ -19,7 +19,7 @@ if not api_key:
 try: 
     rf = Roboflow(api_key=api_key)
 except Exception as e:
-    raise ConnectionError("Failed to connect to Roboflow. Check your API key and internet connection.") from e
+    raise ConnectionError(f"Failed to connect to Roboflow: {e}. Check your API key and internet connection.") from e
 
 project = rf.workspace("njm08").project("neptune-eye-qw4uq")
 version = project.version(2)
