@@ -35,11 +35,25 @@ The application can be run in Docker containers. There are several Docker images
 
 - __Jetpack6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support and is for training and inference.
 
+- __Inference (AMD64 and ARM64)__: Images for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs). This is used in the CI-pipeline to run and test the application.
+
+- __Training (AMD64)__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
+
+### Pull Docker Image Inference
+
+To pull the Docker image for inference run the following script. It will detect the architecture you are on and pull the correct image.
+
+```shell
+python3 tools/docker/pull_docker_image_inference.py
+```
+
+### Build Docker Image
+
+To build a docker image run one of the following scripts.
+
 ```shell
 python3 tools/docker/build_docker_jetpack6.py
 ```
-
-- __Inference (AMD64 and ARM64)__: Images for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs). This is used in the CI-pipeline to run and test the application.
 
 ```shell
 python3 tools/docker/build_docker_inference_amd64.py
@@ -49,13 +63,11 @@ python3 tools/docker/build_docker_inference_amd64.py
 python3 tools/docker/build_docker_inference_arm64.py
 ```
 
-- __Training (AMD64)__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
-
 ```shell
 python3 tools/docker/build_docker_training_amd64.py
 ```
 
-__Limitations__:
+### Limitations
 
 - GUI support is tricky when running the application in Docker containers. Use the default headless mode for a stable run.
 - No GPU support for Mac M1/M2/M3 when running inference in Docker container. For GPU support during inference you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).

@@ -7,6 +7,9 @@ import subprocess
 import platform
 from enum import Enum
 
+REGISTRY_SCALEWAY = 'rg.fr-par.scw.cloud'
+REGISTRY_GITHUB = 'ghcr.io'
+
 def find_project_root() -> Path:
     """Find the root directory of the project.
 
@@ -85,3 +88,37 @@ def detect_architecture() -> Architecture:
     
     return architecture
 
+def tag_and_push_image(dockerimage: str, tag: str, registry: str) -> None:
+    """Tag and push the image to a registry (e.g. Github or Scaleway).
+
+       Args:
+          dockerimage (str): Name of the Docker image.
+          tag (str): Image tag
+     """
+    registry_image_name = f'{registry}/{dockerimage}:{tag}'
+    print(f"Tagging image as {registry_image_name}")
+    subprocess.run(['docker', 'tag', f'{dockerimage}:{tag}', registry_image_name], check=True)
+    
+    print(f"Pushing image {registry_image_name} to Scaleway registry")
+    subprocess.run(['docker', 'push', registry_image_name], check=True)
+
+def parse_for_push() -> bool:
+    """Parse command line arguments for push option.
+
+    Returns:
+        bool: True if --push is specified, False otherwise.
+    """
+    import argparse
+    parser = argparse.ArgumentParser(description="Build Docker image and push if specified")
+    parser.add_argument("--push", action="store_true", help="Push the image to the registry after building")
+    args = parser.parse_args()
+    return args.push
+
+def is_github_ci() -> bool:
+    """Check if running in CI environment.
+
+    Returns:
+        bool: True if running in CI, False otherwise.
+    """
+    is_ci = os.getenv("GITHUB_ACTIONS") == "true"
+    return is_ci

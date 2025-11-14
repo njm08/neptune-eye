@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build & Push Inference Docker Image
 
 on:
   workflow_dispatch:  # Only manual trigger
@@ -27,3 +27,4 @@ jobs:
       - name: Build & Push Docker Image
         run: |
           python3 tools/docker/build_docker_inference_amd64.py --push
+          python3 tools/docker/build_docker_inference_jetpack6.py --push
