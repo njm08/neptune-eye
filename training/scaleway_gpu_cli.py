@@ -45,23 +45,31 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s start              Start the GPU instance and wait until is is running
-  %(prog)s stop               Stop the GPU instance (async)
-  %(prog)s stop-and-wait      Stop and wait until stopped
-  %(prog)s run "ls -la"       Run a command on the instance
+  %(prog)s start                           Start the GPU instance and wait until running
+  %(prog)s stop                            Stop the GPU instance (async)
+  %(prog)s stop-and-wait                   Stop and wait until stopped
+  %(prog)s run "ls -la"                    Run a single command on the instance
+  %(prog)s ssh                             Open interactive SSH session
+  %(prog)s exec "cd repo" "git pull" "make"   Run multiple commands in single SSH session
         """
     )
     
     parser.add_argument(
         "command",
-        choices=["start", "stop", "start-and-wait", "stop-and-wait", "run"],
+        choices=["start", "stop", "start-and-wait", "stop-and-wait", "run", "ssh", "exec"],
         help="Command to execute"
     )
     
     parser.add_argument(
         "cmd",
         nargs="?",
-        help="Remote command to execute (required for 'run' command)"
+        help="Remote command to execute (required for 'run' command) or commands for 'exec'"
+    )
+    
+    parser.add_argument(
+        "extra_cmds",
+        nargs="*",
+        help="Additional commands for 'exec' command"
     )
     
     parser.add_argument(
@@ -70,11 +78,21 @@ Examples:
         help="Enable verbose output"
     )
     
+    parser.add_argument(
+        "--no-interactive",
+        action="store_true",
+        help="Capture output and show after completion (default: stream in real-time)"
+    )
+    
     args = parser.parse_args()
     
     # Validate run command requires cmd argument
     if args.command == "run" and not args.cmd:
         parser.error("'run' command requires a command argument")
+    
+    # Validate exec command requires at least one cmd argument
+    if args.command == "exec" and not args.cmd:
+        parser.error("'exec' command requires at least one command argument")
     
     # Load environment variables
     load_env()
@@ -119,16 +137,50 @@ Examples:
                 sys.exit(1)
         
         elif args.command == "run":
-            print(f"Running command: {args.cmd}")
-            result = gpu.run_command(args.cmd)
-            if result.get("stdout"):
-                print(result["stdout"], end="")
-            if result.get("stderr"):
-                print(result["stderr"], end="", file=sys.stderr)
+            interactive = not args.no_interactive
+            if interactive:
+                print(f"Running command: {args.cmd} (streaming output)")
+            else:
+                print(f"Running command: {args.cmd}")
+            
+            result = gpu.run_command(args.cmd, interactive=interactive)
+            
+            # If not interactive, print captured output
+            if not interactive:
+                if result.get("stdout"):
+                    print(result["stdout"], end="")
+                if result.get("stderr"):
+                    print(result["stderr"], end="", file=sys.stderr)
+            
             if not result.get("success"):
                 sys.exit(result.get("returncode", 1))
         
-        if args.command != "run":
+        elif args.command == "ssh":
+            print("Opening interactive SSH session...")
+            returncode = gpu.open_ssh_session()
+            sys.exit(returncode)
+        
+        elif args.command == "exec":
+            # Collect all commands
+            commands = [args.cmd] + (args.extra_cmds if args.extra_cmds else [])
+            print(f"Executing {len(commands)} command(s) in a single SSH session...")
+            for i, cmd in enumerate(commands, 1):
+                print(f"  [{i}] {cmd}")
+            
+            interactive = not args.no_interactive
+            result = gpu.run_commands(commands, interactive=interactive)
+            
+            # If not interactive, print captured output
+            if not interactive:
+                if result.get("stdout"):
+                    print(result["stdout"], end="")
+                if result.get("stderr"):
+                    print(result["stderr"], end="", file=sys.stderr)
+            
+            if not result.get("success"):
+                sys.exit(result.get("returncode", 1))
+        
+        if args.command not in ("run", "ssh", "exec"):
             print(f"Final status: {gpu.status()}")
         
     except Exception as e:

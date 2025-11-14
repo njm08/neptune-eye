@@ -189,7 +189,8 @@ class ScalewayGPU:
 	def run_command(
 		self,
 		command: str,
-		timeout: int = 60
+		timeout: int = 60,
+		interactive: bool = True
 	) -> Dict[str, Any]:
 		"""Execute a command on the instance via SSH.
 
@@ -197,9 +198,11 @@ class ScalewayGPU:
 		----------
 		command : str
 			The command to execute on the remote instance.
-			Path to SSH private key. If None, uses default SSH key resolution.
 		timeout : int
 			Command timeout in seconds (default: 60).
+		interactive : bool
+			If True, streams output in real-time. If False, captures output
+			and returns it after command completes (default: True).
 
 		Returns
 		-------
@@ -212,6 +215,8 @@ class ScalewayGPU:
 			If instance is not running or cannot retrieve IP address.
 		"""
 		import subprocess
+		import sys
+		import threading
 
 		# Ensure instance is running
 		state = self.status()
@@ -237,19 +242,82 @@ class ScalewayGPU:
 		self._log(f"Executing command on {public_ip}: {command}")
 
 		try:
-			result = subprocess.run(
-				ssh_cmd,
-				capture_output=True,
-				text=True,
-				timeout=timeout
-			)
-			
-			return {
-				"stdout": result.stdout,
-				"stderr": result.stderr,
-				"returncode": result.returncode,
-				"success": result.returncode == 0
-			}
+			if interactive:
+				# Stream output in real-time
+				process = subprocess.Popen(
+					ssh_cmd,
+					stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE,
+					text=True,
+					bufsize=1  # Line buffered
+				)
+				
+				stdout_lines = []
+				stderr_lines = []
+				
+				def read_stdout():
+					for line in iter(process.stdout.readline, ''):
+						if line:
+							print(line, end='')
+							sys.stdout.flush()
+							stdout_lines.append(line)
+					process.stdout.close()
+				
+				def read_stderr():
+					for line in iter(process.stderr.readline, ''):
+						if line:
+							print(line, end='', file=sys.stderr)
+							sys.stderr.flush()
+							stderr_lines.append(line)
+					process.stderr.close()
+				
+				# Start reader threads
+				stdout_thread = threading.Thread(target=read_stdout)
+				stderr_thread = threading.Thread(target=read_stderr)
+				stdout_thread.daemon = True
+				stderr_thread.daemon = True
+				stdout_thread.start()
+				stderr_thread.start()
+				
+				# Wait for process with timeout
+				try:
+					returncode = process.wait(timeout=timeout)
+				except subprocess.TimeoutExpired:
+					process.kill()
+					process.wait()
+					return {
+						"stdout": ''.join(stdout_lines),
+						"stderr": ''.join(stderr_lines),
+						"returncode": -1,
+						"success": False,
+						"error": f"Command timed out after {timeout} seconds"
+					}
+				
+				# Wait for threads to finish reading
+				stdout_thread.join(timeout=1)
+				stderr_thread.join(timeout=1)
+				
+				return {
+					"stdout": ''.join(stdout_lines),
+					"stderr": ''.join(stderr_lines),
+					"returncode": returncode,
+					"success": returncode == 0
+				}
+			else:
+				# Original behavior: capture output and return after completion
+				result = subprocess.run(
+					ssh_cmd,
+					capture_output=True,
+					text=True,
+					timeout=timeout
+				)
+				
+				return {
+					"stdout": result.stdout,
+					"stderr": result.stderr,
+					"returncode": result.returncode,
+					"success": result.returncode == 0
+				}
 		except subprocess.TimeoutExpired as e:
 			return {
 				"stdout": e.stdout.decode() if e.stdout else "",
@@ -257,6 +325,199 @@ class ScalewayGPU:
 				"returncode": -1,
 				"success": False,
 				"error": f"Command timed out after {timeout} seconds"
+			}
+		except Exception as e:
+			return {
+				"stdout": "",
+				"stderr": str(e),
+				"returncode": -1,
+				"success": False,
+				"error": str(e)
+			}
+
+	def open_ssh_session(self) -> int:
+		"""Open an interactive SSH session to the instance.
+
+		Returns
+		-------
+		int
+			The exit code of the SSH session.
+
+		Raises
+		------
+		RuntimeError
+			If instance is not running or cannot retrieve IP address.
+		"""
+		import subprocess
+		import sys
+
+		# Ensure instance is running
+		state = self.status()
+		if state != "running":
+			raise RuntimeError(f"Instance must be running to open SSH session (current state: {state})")
+
+		# Get instance IP address
+		path = f"/instance/v1/zones/{self.zone}/servers/{self.server_id}"
+		data = self._request("GET", path)
+		server = data.get("server", {}) if isinstance(data, dict) else {}
+		public_ip = server.get("public_ip", {}).get("address") if server.get("public_ip") else None
+		
+		if not public_ip:
+			raise RuntimeError("Could not retrieve instance public IP address")
+
+		self._log(f"Opening SSH session to {public_ip}")
+
+		# Open interactive SSH session
+		ssh_cmd = ["ssh", f"root@{public_ip}"]
+		
+		try:
+			# Run SSH with no capture - fully interactive
+			result = subprocess.run(ssh_cmd)
+			return result.returncode
+		except Exception as e:
+			print(f"Error opening SSH session: {e}", file=sys.stderr)
+			return 1
+
+	def run_commands(
+		self,
+		commands: list,
+		timeout: int = 300,
+		interactive: bool = True
+	) -> Dict[str, Any]:
+		"""Execute multiple commands on the instance in a single SSH session.
+
+		Parameters
+		----------
+		commands : list
+			List of commands to execute sequentially.
+		timeout : int
+			Total timeout for all commands in seconds (default: 300).
+		interactive : bool
+			If True, streams output in real-time. If False, captures output
+			and returns it after commands complete (default: True).
+
+		Returns
+		-------
+		Dict[str, Any]
+			Dictionary with 'stdout', 'stderr', 'returncode', and 'success' keys.
+
+		Raises
+		------
+		RuntimeError
+			If instance is not running or cannot retrieve IP address.
+		"""
+		import subprocess
+		import sys
+		import threading
+
+		# Ensure instance is running
+		state = self.status()
+		if state != "running":
+			raise RuntimeError(f"Instance must be running to execute commands (current state: {state})")
+
+		# Get instance IP address
+		path = f"/instance/v1/zones/{self.zone}/servers/{self.server_id}"
+		data = self._request("GET", path)
+		server = data.get("server", {}) if isinstance(data, dict) else {}
+		public_ip = server.get("public_ip", {}).get("address") if server.get("public_ip") else None
+		
+		if not public_ip:
+			raise RuntimeError("Could not retrieve instance public IP address")
+
+		# Combine commands with proper error handling
+		# Use bash -c with set -e to stop on first error
+		combined_cmd = " && ".join(commands)
+		bash_cmd = f"bash -c 'set -e; {combined_cmd}'"
+
+		# Build SSH command
+		ssh_cmd = ["ssh", f"root@{public_ip}", bash_cmd]
+
+		self._log(f"Executing {len(commands)} command(s) on {public_ip}")
+
+		try:
+			if interactive:
+				# Stream output in real-time
+				process = subprocess.Popen(
+					ssh_cmd,
+					stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE,
+					text=True,
+					bufsize=1  # Line buffered
+				)
+				
+				stdout_lines = []
+				stderr_lines = []
+				
+				def read_stdout():
+					for line in iter(process.stdout.readline, ''):
+						if line:
+							print(line, end='')
+							sys.stdout.flush()
+							stdout_lines.append(line)
+					process.stdout.close()
+				
+				def read_stderr():
+					for line in iter(process.stderr.readline, ''):
+						if line:
+							print(line, end='', file=sys.stderr)
+							sys.stderr.flush()
+							stderr_lines.append(line)
+					process.stderr.close()
+				
+				# Start reader threads
+				stdout_thread = threading.Thread(target=read_stdout)
+				stderr_thread = threading.Thread(target=read_stderr)
+				stdout_thread.daemon = True
+				stderr_thread.daemon = True
+				stdout_thread.start()
+				stderr_thread.start()
+				
+				# Wait for process with timeout
+				try:
+					returncode = process.wait(timeout=timeout)
+				except subprocess.TimeoutExpired:
+					process.kill()
+					process.wait()
+					return {
+						"stdout": ''.join(stdout_lines),
+						"stderr": ''.join(stderr_lines),
+						"returncode": -1,
+						"success": False,
+						"error": f"Commands timed out after {timeout} seconds"
+					}
+				
+				# Wait for threads to finish reading
+				stdout_thread.join(timeout=1)
+				stderr_thread.join(timeout=1)
+				
+				return {
+					"stdout": ''.join(stdout_lines),
+					"stderr": ''.join(stderr_lines),
+					"returncode": returncode,
+					"success": returncode == 0
+				}
+			else:
+				# Capture output and return after completion
+				result = subprocess.run(
+					ssh_cmd,
+					capture_output=True,
+					text=True,
+					timeout=timeout
+				)
+				
+				return {
+					"stdout": result.stdout,
+					"stderr": result.stderr,
+					"returncode": result.returncode,
+					"success": result.returncode == 0
+				}
+		except subprocess.TimeoutExpired as e:
+			return {
+				"stdout": e.stdout.decode() if e.stdout else "",
+				"stderr": e.stderr.decode() if e.stderr else "",
+				"returncode": -1,
+				"success": False,
+				"error": f"Commands timed out after {timeout} seconds"
 			}
 		except Exception as e:
 			return {
