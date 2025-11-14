@@ -66,16 +66,13 @@ class TrainingConfig:
             self.dataset_path = (ROOT_DIR / config["data"]).resolve()
         if not self.dataset_path.exists():
             raise FileNotFoundError(f"Dataset configuration file not found: {self.dataset_path}")
-        # Set directory for saving the experiment runs
-        self.experiment_dir = (ROOT_DIR / "runs" / config_dict.get("name", "default")).resolve()
 
         # Print the configuration
         self._print_config()
 
 
     def _print_config(self) -> None:
-        """ Print the configuration.
-        """
+        """ Print the configuration."""
         print("\nTraining Configuration:")
         print(f"  Name: {self.name}")
         print(f"  Model: {self.model}")
@@ -108,13 +105,7 @@ def run_training(training_config_path: str) -> None:
     
     print(f"Loading config from: {training_config_path}")
     training_config = TrainingConfig(training_config_path)
-    load_dataset(training_config)
     train_yolo_model(training_config)
-
-def load_dataset(config: TrainingConfig) -> None:
-    """Load the dataset.
-    """
-    
 
 def train_yolo_model(training_config: TrainingConfig) -> None:
     """Train YOLO model based on the provided configuration.
@@ -131,9 +122,9 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Set output directory for ML Flow
-    ml_flow_output = ROOT_DIR / "output" / "mlflow"
-    ml_flow_ui = f"file:{ml_flow_output}"
-    mlflow.set_tracking_uri(ml_flow_ui)
+    mlflow_output = ROOT_DIR / "output" / "mlflow"
+    mlflow_ui = f"file:{mlflow_output}"
+    mlflow.set_tracking_uri(mlflow_ui)
     mlflow.set_experiment(training_config.name)
 
     # Train the model
@@ -145,7 +136,7 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
         epochs=training_config.epochs,
         imgsz=training_config.imgsz,
         batch=training_config.batch,
-        lr0=training_config.lr0,  # Use configured learning rate or default to 0.01
+        lr0=training_config.lr0,
         fraction=training_config.fraction
     )
 
@@ -168,6 +159,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     
-    # Update config path to use command line argument
-    config_path = (ROOT_DIR / "training" / args.config).resolve()
-    run_training(config_path)
+    try:
+        # Update config path to use command line argument
+        config_path = (ROOT_DIR / "training" / args.config).resolve()
+        run_training(str(config_path))
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
