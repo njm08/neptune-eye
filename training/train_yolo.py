@@ -7,7 +7,7 @@ from ultralytics import YOLO
 from pathlib import Path
 import yaml
 import argparse
-
+import mlflow
 
 # Root directory of the project
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -36,6 +36,7 @@ class TrainingConfig:
         self.batch = config_dict.get("batch", 4)
         self.lr0 = config_dict.get("lr0", 0.01)
         self.fraction = config_dict.get("fraction", 1.0)
+        self.name = config_dict.get("name", "experiment1")
 
         # Some configurations need to be resolved with some logic:
         # Detect device
@@ -60,7 +61,7 @@ class TrainingConfig:
         # Resolve path to dataset YAML
         dataset_config = config_dict.get("data")
         if dataset_config is None:
-            self.dataset_path = (ROOT_DIR / "training" / "data" / "data.yaml").resolve()
+            self.dataset_path = (ROOT_DIR / "data" / "data.yaml").resolve()
         else:
             self.dataset_path = (ROOT_DIR / config["data"]).resolve()
         if not self.dataset_path.exists():
@@ -76,6 +77,7 @@ class TrainingConfig:
         """ Print the configuration.
         """
         print("\nTraining Configuration:")
+        print(f"  Name: {self.name}")
         print(f"  Model: {self.model}")
         print(f"  Epochs: {self.epochs}")
         print(f"  Image size: {self.imgsz}")
@@ -84,7 +86,6 @@ class TrainingConfig:
         print(f"  Fraction: {self.fraction}")
         print(f"  Device: {self.device}")
         print(f"  Dataset: {self.dataset_path}")
-        print(f"  Experiment directory: {self.experiment_dir}\n")
 
     def _get_device(self) -> str:
         """Detect the best available device: CUDA > MPS > CPU.
@@ -122,12 +123,23 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
         training_config (TrainingConfig): Training configuration.
     """
 
-    # Load pre-trained YOLOv11 model. The model is downloaded from Ultralytics.
+    # Load pre-trained YOLOv11 model.
     model = YOLO(training_config.model)
+
+    # Create output directory for YOLO runsif it doesn't exist
+    output_path = ROOT_DIR / "output" / "runs"
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Set output directory for ML Flow
+    ml_flow_output = ROOT_DIR / "output" / "mlflow"
+    ml_flow_ui = f"file:{ml_flow_output}"
+    mlflow.set_tracking_uri(ml_flow_ui)
+    mlflow.set_experiment(training_config.name)
 
     # Train the model
     results = model.train(
-        project="test_gpu", 
+        project=str(output_path), # This sets the output directory.
+        name=training_config.name, 
         device=training_config.device,  
         data=training_config.dataset_path,
         epochs=training_config.epochs,
@@ -151,8 +163,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="training_config_default.yaml",
-        help="Name of the config YAML file. Must be in training directory (default: training_config_default.yaml)."
+        default="training_config_short.yaml",
+        help="Name of the config YAML file. Must be in training directory (default: training_config_short.yaml)."
     )
     args = parser.parse_args()
     

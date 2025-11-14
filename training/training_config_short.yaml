@@ -1,10 +1,10 @@
 # Training configuration
 
-name: "yolo11s_v0_1_0"       # Experiment name (use descriptive names like 'yolo11n_v1', 'high_lr_test')
+name: "experiment1"          # Experiment name (use descriptive names like 'yolo11n_v1', 'high_lr_test')
 dataset: null                # Absolute path to dataset configuration. If null, uses dataset found in data folder.
 model: "models/pytorch/neptunes.pt"          # Pretrained model. Either a path or a model name from the YOLO Hub
-epochs: 5                    # Number of training epochs
-batch: 16                     # Batch size
+epochs: 1                    # Number of training epochs
+batch: 3                     # Batch size
 imgsz: 640                   # Image size
 lr0: 0.001                   # Initial learning rate (low to avoid forgetting pre-trained classes)
 fraction: 1.0                # Fraction of data to use for validation

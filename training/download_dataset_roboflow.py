@@ -25,6 +25,6 @@ except Exception as e:
 
 project = rf.workspace("njm08").project("neptune-eye-qw4uq")
 version = project.version(2)
-dataset_dir = (root_dir / "training"  / "data").resolve()
+dataset_dir = (root_dir / "data").resolve()
 dataset = version.download(model_format="yolov11", location=str(dataset_dir))
 print(f"Dataset downloaded to: {dataset_dir}")
