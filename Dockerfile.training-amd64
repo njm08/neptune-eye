@@ -1,5 +1,5 @@
 # Use base image from Ultralytics for Jetson with JetPack 6
-FROM ultralytics/ultralytics:latest
+FROM ultralytics/ultralytics:8.3.228
 
 # Install missing pythonic-lap package
 RUN pip install --no-cache-dir \

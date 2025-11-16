@@ -3,7 +3,7 @@
 
 from logging import config
 import torch
-from ultralytics import YOLO
+from ultralytics import YOLO, settings
 from pathlib import Path
 import yaml
 import argparse
@@ -126,6 +126,7 @@ def train_yolo_model(training_config: TrainingConfig) -> None:
     mlflow_ui = f"file:{mlflow_output}"
     mlflow.set_tracking_uri(mlflow_ui)
     mlflow.set_experiment(training_config.name)
+    settings.update({"mlflow": True})
 
     # Train the model
     results = model.train(

@@ -1,9 +1,13 @@
-""" Pull the latest docker image for inference from Github.
+"""Pull the latest Docker image for inference from GitHub.
+
+This script pulls architecture-specific Docker images for inference workloads.
+
+Prerequisites:
+   - Docker must be installed and accessible in PATH
 """
 
 import subprocess
 
-from django.test import tag
 from build_docker_util import detect_architecture, Architecture, REGISTRY_GITHUB
 
 IMAGE_NAME: str = 'njm08/neptune-eye'
