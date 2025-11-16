@@ -1,0 +1,10 @@
+# Use base image from Ultralytics for Jetson with JetPack 6
+FROM ultralytics/ultralytics:8.3.228
+
+# Install missing pythonic-lap package
+RUN pip install --no-cache-dir \
+    pytest==8.4.2 \
+    lap==0.5.12 \
+    roboflow==1.2.9 \
+    python-dotenv==1.1.1 \
+    mlflow==3.5.1

@@ -5,8 +5,11 @@
 app/src/neptune_eye/neptune_eye_config.yaml
 
 # Training data
-training/data/**
-runs/**
+data/**
+# Output folder
+output/**
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

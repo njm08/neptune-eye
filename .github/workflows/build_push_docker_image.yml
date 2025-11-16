@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build & Push Inference AMD64 Docker Image
 
 on:
   workflow_dispatch:  # Only manual trigger
@@ -24,6 +24,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push Docker Image
+      - name: Build & Push AMD64
         run: |
-          python3 tools/docker/build_docker_amd64.py --push
+          python3 tools/docker/build_docker_inference_amd64.py --push
