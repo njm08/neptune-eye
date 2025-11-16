@@ -64,7 +64,7 @@ class TrainingConfig:
             self.dataset_path = (ROOT_DIR / "data" / "data.yaml").resolve()
         else: # Set the path relative to the root diretory.
             self.dataset_path = (ROOT_DIR / config["data"]).resolve()
-        if not self.dataset_path.exists():
+        if not Path(self.dataset_path).exists():
             raise FileNotFoundError(f"Dataset configuration file not found: {self.dataset_path}")
 
         # Print the configuration
@@ -96,11 +96,11 @@ class TrainingConfig:
         else:
             return "cpu"
 
-def run_training(training_config_path: str) -> None:
+def run_training(training_config_path: Path) -> None:
     """Run the training process.
     
     Args:
-        training_config_path (str): Path to the training configuration YAML file.
+        training_config_path (Path): Path to the training configuration YAML file.
     """
     
     print(f"Loading config from: {training_config_path}")
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     try:
         # Update config path to use command line argument
         config_path = (ROOT_DIR / "training" / args.config).resolve()
-        run_training(str(config_path))
+        run_training(config_path)
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
