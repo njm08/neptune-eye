@@ -1,49 +1,39 @@
 # Neptune Eye
 
-You are cruising on your sailboat for hours in the vast blue sea.\
-You haven't seen a boat for a while.\
-You go under deck and make yourself a snack.\
-You come back to the cockpit and a boat passes you a lot closer than you are comfortable with.\
-_Neptune Eye_ prevents these scary situations.
+- AI-powered maritime object detection system for sailboats
+- Real-time detection of boats, buoys and other objects
+- Detection ob objects that are blocked by large sails
+- Stay safe even when away from the helm
+- Open-source and low cost
 
-It is an AI-powered object detection system constantly looking out for you and your crew,\
-_so you can relax and stay safe_!
-
-Follow the journey in the __blog__: <https://njm08.github.io/>
+**Follow the development journey:** <https://njm08.github.io/>
 
 ![Neptune Eye Detecting Sailboats](/res/gifs/detection_sailboat_svendborg.gif) ![Neptune Eye Detecting Ferry](/res/gifs/detection_buoys_one.gif)\
 _Neptune Eye detecting other sailboats and buoys_
 
 ## Features
 
-- __Real-world data__: Collected onboard a sailboat across varied conditions
-- __Real-time performance__: ~10 ms inference on an NVIDIA Jetson Orin Nano
-- __Cloud training__: Train and evaluate models on Cloud GPU instances.
-- __Multi-architecture Docker support__: Docker images for inference and training (ARM64 and x86). Specialized image for _NVIDIA Jetpack 6_ hardware.  
-- __Modular Architecture__:  Frame sources (camera/video/streaming) and detection model are easy to change
+- **Real-world data**: Trained on imagery collected onboard a sailboat across varied maritime conditions
+- **Real-time performance**: ~10 ms inference on NVIDIA Jetson Orin Nano
+- **Cloud training**: Scalable model training and evaluation on Cloud GPU instances
+- **Multi-architecture support**: Docker images for inference and training (ARM64 and x86), including specialized NVIDIA Jetpack 6 image
+- **Modular architecture**: Configurable frame sources (camera/video/streaming) and detection models
 
-## Coming Soon
+## Cloud Training
 
-- Integration of an outdoor surveillance camera.
-- Spring 2026: Installation and testing on sailboat.
+Training is fully containerized and runs on Scaleway Cloud GPU instances. Models are trained using specialized Docker images, with experiment tracking and performance monitoring via MLflow.
 
-## Model Training on Cloud
+## Multi-Architecture Support
 
-Training is fully containerized and runs on Cloud GPU instances from _Scaleway_, a European cloud provider. Models are trained using the specialized training Docker image, with results tracked and evaluated through _MLFlow_ for performance monitoring.
+Multiple Docker images are available for different architectures and purposes, based on _Ultralytics_ base images:
 
-## Docker
+- **Jetpack 6**: Optimized for NVIDIA Jetson Orin Nano with GPU support for training and inference
+- **Inference (AMD64/ARM64)**: Minimal Python environments for ARM64 (Mac M1/M2/M3, Raspberry Pi) and x86 (Intel/AMD) architectures. Used in CI pipelines for testing.
+- **Training (AMD64)**: Full-featured image for GPU-accelerated training on cloud instances
 
-The application can be run in Docker containers. There are several Docker images provided for different architectures and purposes (training, inference). They are based on the Docker images provided by _Ultralytics_.
+### Pull Docker Image
 
-- __Jetpack 6__: Specialized Docker image for the NVIDIA Jetson Orin Nano running Jetpack 6. This image has GPU support and is for training and inference.
-
-- __Inference (AMD64 and ARM64)__: Images for running inference with a minimal python environment. Available for ARM64 architectures such as Mac M1/M2/M3 or Raspberry Pi or x86 architectures (Intel and AMD CPUs). This is used in the CI-pipeline to run and test the application.
-
-- __Training (AMD64)__: Full blown image for running training on GPU. It is used for running the training on Cloud GPUs.
-
-### Pull Docker Image Inference
-
-To pull the Docker image for inference run the following script. It will detect the architecture you are on and pull the correct image.
+The following script automatically detects your architecture and pulls the appropriate inference image:
 
 ```shell
 python3 tools/docker/pull_docker_image_inference.py
@@ -51,7 +41,7 @@ python3 tools/docker/pull_docker_image_inference.py
 
 ### Build Docker Image
 
-To build a docker image run one of the following scripts.
+Build images using the appropriate script for your target platform:
 
 ```shell
 python3 tools/docker/build_docker_jetpack6.py
@@ -71,9 +61,14 @@ python3 tools/docker/build_docker_training_amd64.py
 
 ### Limitations
 
-- GUI support is tricky when running the application in Docker containers. Use the default headless mode for a stable run.
-- No GPU support for Mac M1/M2/M3 when running inference in Docker container. For GPU support during inference you will need to install the dependencies locally according to the [installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
-  
+- **GUI support**: Limited in Docker containers. Use headless mode for stable operation.
+- **Mac GPU support**: M1/M2/M3 GPUs not supported in Docker. For GPU acceleration, install dependencies locally per the [Ultralytics installation guide](https://docs.ultralytics.com/quickstart/#custom-installation-methods).
+
+## Roadmap
+
+- Integration with outdoor marine surveillance camera
+- Onboard installation and real-world testing (Spring 2026)
+
 ## License
 
-MIT License — see `LICENSE` for details and third‑party notices.
+MIT License — see `LICENSE` for details and third-party notices.
