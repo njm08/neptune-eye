@@ -9,6 +9,8 @@ _Neptune Eye_ prevents these scary situations.
 It is an AI-powered object detection system constantly looking out for you and your crew,\
 _so you can relax and stay safe_!
 
+Follow the journey in the __blog__: <https://njm08.github.io/>
+
 ![Neptune Eye Detecting Sailboats](/res/gifs/detection_sailboat_svendborg.gif) ![Neptune Eye Detecting Ferry](/res/gifs/detection_buoys_one.gif)\
 _Neptune Eye detecting other sailboats and buoys_
 
@@ -16,28 +18,18 @@ _Neptune Eye detecting other sailboats and buoys_
 
 - __Real-world data__: Collected onboard a sailboat across varied conditions
 - __Real-time performance__: ~10 ms inference on an NVIDIA Jetson Orin Nano
-- __YOLOv11 models__: Nano, Small, and Medium with FP16/FP32 precision options
-- __Modular__:  Frame sources (camera/video/streaming) and detection model are easy to change
-- __Easy integration__: Docker containers for easy integration across platforms
+- __Cloud training__: Train and evaluate models on Cloud GPU instances.
+- __Multi-architecture Docker support__: Docker images for inference and training (ARM64 and x86). Specialized image for _NVIDIA Jetpack 6_ hardware.  
+- __Modular Architecture__:  Frame sources (camera/video/streaming) and detection model are easy to change
 
 ## Coming Soon
 
-- Integration of an outdoor surveillance camera
-- Cloud integration for model training, evaluation, and performance tracking
+- Integration of an outdoor surveillance camera.
+- Spring 2026: Installation and testing on sailboat.
 
-## Follow the Journey
+## Model Training on Cloud
 
-- Blog: <https://njm08.github.io/>
-
-## Model Training
-
-### Cloud
-
-It is possible to train the model on a cloud instance. 
-
-## Performance Tracking
-
-Track the performance using MLFlow. 
+Training is fully containerized and runs on Cloud GPU instances from _Scaleway_, a European cloud provider. Models are trained using the specialized training Docker image, with results tracked and evaluated through _MLFlow_ for performance monitoring.
 
 ## Docker
 
