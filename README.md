@@ -2,8 +2,7 @@
 
 - AI-powered maritime object detection system for sailboats
 - Real-time detection of boats, buoys and other objects
-- Detection ob objects that are blocked by large sails
-- Stay safe even when away from the helm
+- Stay safe even when away from the helm or objects are blocked from sight by sails
 - Open-source and low cost
 
 **Follow the development journey:** <https://njm08.github.io/>
@@ -14,7 +13,7 @@ _Neptune Eye detecting other sailboats and buoys_
 ## Features
 
 - **Real-world data**: Trained on imagery collected onboard a sailboat across varied maritime conditions
-- **Real-time performance**: ~10 ms inference on NVIDIA Jetson Orin Nano
+- **Real-time performance with YOLO11**: ~10 ms inference on _NVIDIA Jetson Orin Nano_ using _YOLO11_ model
 - **Cloud training**: Scalable model training and evaluation on Cloud GPU instances
 - **Multi-architecture support**: Docker images for inference and training (ARM64 and x86), including specialized NVIDIA Jetpack 6 image
 - **Modular architecture**: Configurable frame sources (camera/video/streaming) and detection models
