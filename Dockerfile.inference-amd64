@@ -5,4 +5,4 @@ FROM ultralytics/ultralytics:8.3.225-python
 RUN apt-get update && apt-get install -y \
     ffmpeg && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir pytest==7.4.3 lap==0.5.12
+    pip install --no-cache-dir pytest==7.4.3 lap==0.5.12 flask==3.1.2

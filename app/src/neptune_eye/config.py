@@ -39,6 +39,7 @@ class ExpertConfig:
     image_size: int
     device: Optional[InferenceDevice]
     model_path: Optional[str]
+    enable_web_server: bool
 
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
@@ -244,6 +245,7 @@ expert:
   image_size: 640                    # Input image size for YOLO model
   override_model_path: null          # Possibility to override the used model. Can be relative to root or absolute path. null is default. 
   override_device: null              # Possibility to override the device. Options: null (best detected device for inference is used), "NVIDIA_GPU", "M1_GPU", "CPU"
+  enable_web_server: true            # True to enable the web server for live streaming, false to disable it
 """
         return content
 
@@ -349,7 +351,8 @@ expert:
                 iou_threshold=float(config_data["expert"]["iou_threshold"]),
                 image_size=int(config_data["expert"]["image_size"]),
                 device=self._map_device(config_data["expert"]["override_device"]) or self._detect_best_device(),
-                model_path=None  # Will be resolved after instance creation
+                model_path=None,  # Will be resolved after instance creation
+                enable_web_server=bool(config_data["expert"].get("enable_web_server", True)) # Default to True if not present
             )
 
         except KeyError as e:
@@ -429,6 +432,10 @@ expert:
     def get_model_path(self) -> str:
         """Get model file path."""
         return self._expert.model_path
+    
+    def get_enable_web_server(self) -> bool:
+        """Get web server enabled status."""
+        return self._expert.enable_web_server
     
     def is_input_movie(self) -> bool:
         """Check if input source is movie file."""

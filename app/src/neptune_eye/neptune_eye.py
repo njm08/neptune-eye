@@ -14,6 +14,7 @@ from object_detection.yolo_object_detection import Yolo11ObjectDetection
 from config import NeptuneEyeConfig
 from utilites import find_project_root
 from result_display import ResultDisplay
+from web_server import WebServer
 
 def continuous_capture_and_inference() -> None:
     """Capture images from the webcam or movie file and run inference.
@@ -50,7 +51,14 @@ def continuous_capture_and_inference() -> None:
         capture_source = ImageCapture(image_folder=config.get_image_folder_path())
     else:
         raise RuntimeError("No valid input source configured.")
-    with capture_source as capture, ResultDisplay(headless=config.get_headless()) as result_display:   
+
+    # Start web server if enabled
+    web_server = None
+    if config.get_enable_web_server():
+        web_server = WebServer()
+        web_server.start()
+
+    with capture_source as capture, ResultDisplay(headless=config.get_headless(), web_server=web_server) as result_display:   
 
         # Enter continuous capture and inference loop
         print("Starting continuous capture and inference...")

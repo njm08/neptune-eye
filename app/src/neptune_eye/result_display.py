@@ -12,13 +12,15 @@ class ResultDisplay:
     """Handles the display of detection results.
     """
 
-    def __init__(self, headless: bool = True) -> None:
+    def __init__(self, headless: bool = True, web_server=None) -> None:
         """Initialize the ResultDisplay.
 
         Args:
             headless (bool): If True, run in headless mode without displaying images.
+            web_server (WebServer): Optional web server instance to update with frames.
         """
         self._headless = headless
+        self._web_server = web_server
         self._previous_line_count = 0
         self._last_detection_time = None
         self._window_name = "Neptune Eye"
@@ -50,6 +52,12 @@ class ResultDisplay:
             bool: True if the display should be exited. False otherwise.
         """
         exit = False
+
+        if self._web_server:
+            annotated_frame = results[0].plot()
+            if annotated_frame is not None:
+                self._web_server.update_frame(annotated_frame)
+
         if self._headless:
             self._display_headless(results)
         else:
