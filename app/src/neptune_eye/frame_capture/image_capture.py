@@ -18,6 +18,8 @@ class ImageCapture(FrameCaptureInterface):
 
     _SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 
+    _SLEEP_CHUNK_SECONDS = 0.05  # Sleep in short slices to stay responsive while waiting
+
     def __init__(self, image_folder: str, delay_ms: float = 2000.0) -> None:
         """Initialise the image folder capture.
 
@@ -70,12 +72,13 @@ class ImageCapture(FrameCaptureInterface):
 
         # Pace the frame delivery to respect the configured delay
         if self._delay_seconds > 0:
-            now = time.time()
             if self._last_frame_time is not None:
-                elapsed = now - self._last_frame_time
-                remaining = self._delay_seconds - elapsed
-                if remaining > 0:
-                    time.sleep(remaining)
+                target_time = self._last_frame_time + self._delay_seconds
+                while True:
+                    remaining = target_time - time.time()
+                    if remaining <= 0:
+                        break
+                    time.sleep(min(remaining, self._SLEEP_CHUNK_SECONDS))
             self._last_frame_time = time.time()
 
         for _ in range(len(self._image_paths)):
