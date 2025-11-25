@@ -14,7 +14,13 @@ class WebServer:
         self.encoded_frame = None
         self.frame_lock = threading.Lock()
         self.running = False
-        self.frame_event = threading.Event()
+        self.frame_condition = threading.Condition()
+        
+        # Background encoding thread
+        self.raw_frame = None
+        self.new_raw_frame_event = threading.Event()
+        self.encoding_thread = threading.Thread(target=self._encoding_loop, daemon=True)
+        self.encoding_thread.start()
 
         # Define routes
         self.app.add_url_rule('/', 'index', self.index)
@@ -135,33 +141,41 @@ class WebServer:
 
     def generate(self):
         while True:
-            # Wait for a new frame to be available
-            self.frame_event.wait()
-            
-            with self.frame_lock:
+            with self.frame_condition:
+                self.frame_condition.wait()
                 if self.encoded_frame is None:
                     continue
                 current_bytes = self.encoded_frame
 
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + current_bytes + b'\r\n')
-            
-            # Simple rate limiting to avoid sending the same frame too many times 
-            # if the client is faster than the producer
-            time.sleep(0.01) 
 
     def update_frame(self, frame):
-        # Encode the frame immediately in the update thread (or offload if needed)
-        # Encoding once here is more efficient than encoding per-client in generate()
-        # We also lower quality to 70% to save bandwidth
-        (flag, encoded_image) = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
-        
-        if flag:
+        # Just store the raw frame and signal the encoder thread
+        # This is non-blocking for the main detection loop
+        with self.frame_lock:
+            self.raw_frame = frame.copy()
+        self.new_raw_frame_event.set()
+
+    def _encoding_loop(self):
+        """Background thread to encode frames to JPEG."""
+        while True:
+            self.new_raw_frame_event.wait()
+            self.new_raw_frame_event.clear()
+            
             with self.frame_lock:
-                self.encoded_frame = bytearray(encoded_image)
-            # Notify all waiting clients that a new frame is ready
-            self.frame_event.set()
-            self.frame_event.clear()
+                if self.raw_frame is None:
+                    continue
+                frame_to_encode = self.raw_frame
+            
+            # Encode to JPEG (CPU intensive operation)
+            # We lower quality to 70% to save bandwidth
+            (flag, encoded_image) = cv2.imencode(".jpg", frame_to_encode, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+            
+            if flag:
+                with self.frame_condition:
+                    self.encoded_frame = bytearray(encoded_image)
+                    self.frame_condition.notify_all()
 
     def start(self):
         self.running = True
