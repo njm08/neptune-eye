@@ -18,6 +18,7 @@ class InputSource(Enum):
     """Choose the input source for video processing."""
     CAMERA = "CAMERA"
     MOVIE = "MOVIE"
+    IMAGE = "IMAGE"
 
 @dataclass
 class GeneralConfig:
@@ -27,6 +28,7 @@ class GeneralConfig:
     source: InputSource
     camera_index: int
     movie_path: Optional[str]
+    image_folder: Optional[str]
 
 @dataclass
 class ExpertConfig:
@@ -121,7 +123,7 @@ class NeptuneEyeConfig:
 
         return model_paths[model_size]
 
-    def _resolve_movie_path(self, movie_path: Optional[str]) -> str:
+    def _resolve_movie_path(self, movie_path: Optional[str]) -> Optional[str]:
         """
         Resolve the absolute path to the movie file based on configuration.
         Supports both absolute paths and relative paths (relative to project root).
@@ -131,20 +133,55 @@ class NeptuneEyeConfig:
             
         Returns:
             str: Absolute path to the movie file.
+            None: If input source is not MOVIE.
         """
-        if self._general.source == InputSource.MOVIE:
-            # If there is no movie path provided, use default sample movie
-            if movie_path is None:
-                movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH)
+        if self._general.source != InputSource.MOVIE:
+            return None
+
+        # If there is no movie path provided, use default sample movie
+        if movie_path is None:
+            movie_path = Path(find_project_root() / NeptuneEyeConfig.DEFAULT_MOVIE_PATH)
+        else:
+            provided_path = Path(movie_path)
+            if not provided_path.is_absolute():
+                # Relative path - resolve from project root
+                movie_path = find_project_root() / provided_path
             else:
-                provided_path = Path(movie_path)
-                if not provided_path.is_absolute():
-                    # Relative path - resolve from project root
-                    movie_path = find_project_root() / provided_path
-                else:
-                    movie_path = provided_path
+                movie_path = provided_path
+
+        resolved_movie_path = Path(movie_path).resolve()
+        if not resolved_movie_path.exists() or not resolved_movie_path.is_file():
+            raise ValueError(f"Movie file does not exist: {resolved_movie_path}")
+
+        return str(resolved_movie_path)
+
+    def _resolve_image_folder(self, image_folder: Optional[str]) -> Optional[str]:
+        """Resolve the absolute path to the image folder if image input is used.
         
-        return str(movie_path.resolve())
+        Args:
+            image_folder: Path to the image folder (can be None)
+        
+        Returns:
+            str: Absolute path to the image folder.
+            None: If input source is not IMAGE.
+        """
+        if self._general.source != InputSource.IMAGE:
+            return None
+
+        if image_folder is None:
+            provided_path = Path(find_project_root() / "res/images")
+        else:
+            provided_path = Path(image_folder)
+        if not provided_path.is_absolute():
+            image_folder_path = find_project_root() / provided_path
+        else:
+            image_folder_path = provided_path
+
+        resolved_folder = image_folder_path.resolve()
+        if not resolved_folder.exists() or not resolved_folder.is_dir():
+            raise ValueError(f"Image folder does not exist or is not a directory: {resolved_folder}")
+
+        return str(resolved_folder)
 
     def _resolve_model_path(self, user_given_model_path: Optional[str]) -> str:
         """
@@ -194,9 +231,10 @@ class NeptuneEyeConfig:
 general:
   confidence: 0.5                    # Confidence threshold for detections (0.0 - 1.0)
   headless: true                     # True to run without showing images (headless mode), false to display images
-  source: "MOVIE"                    # Options: "CAMERA", "MOVIE"
+  source: "MOVIE"                    # Options: "CAMERA", "MOVIE", "IMAGE"
   camera_index: 0                    # Camera index (0 for default/built-in, 1+ for external cameras)
   movie_path: null                   # Path to movie file. Can be relative to root or absolute. If null is set, a sample video will be used.
+  images_path: null                  # Folder containing images. Can be relative to root or absolute. If null is set, a sample image folder will be used.
 
 # Expert Configuration (Advanced Settings)
 expert:
@@ -245,9 +283,21 @@ expert:
         
         # Validate movie path if using movie input
         if self._general.source == InputSource.MOVIE:
-            movie_path = Path(self._general.movie_path)
-            if not movie_path.exists():
-                raise ValueError(f"Movie file does not exist: {movie_path}")
+            if self._general.movie_path is None:
+                raise ValueError("Movie path must be provided when source is MOVIE")
+
+        # Validate image folder if using image input
+        if self._general.source == InputSource.IMAGE:
+            if self._general.image_folder is None:
+                raise ValueError("Image folder must be provided when source is IMAGE")
+            image_folder_path = Path(self._general.image_folder)
+            image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
+            has_image_files = any(
+                child.is_file() and child.suffix.lower() in image_extensions
+                for child in image_folder_path.iterdir()
+            )
+            if not has_image_files:
+                raise ValueError(f"Image folder does not contain any supported image files: {image_folder_path}")
 
     def load(self, config_path: Optional[Path] = None) -> None:
         """
@@ -288,7 +338,8 @@ expert:
                 headless=bool(config_data["general"]["headless"]),
                 source=self._map_enum(config_data["general"]["source"], InputSource, "input source"),
                 camera_index=int(config_data["general"]["camera_index"]),
-                movie_path=None  # Will be resolved after instance creation
+                movie_path=None,  # Will be resolved after instance creation
+                image_folder=None # Will be resolved after instance creation
             )
             
             # Parse expert config (without model_path, will be set later)
@@ -314,12 +365,18 @@ expert:
         self._expert.model_path = self._resolve_model_path(
             user_given_model_path=config_data["expert"]["override_model_path"]
         )
-        
+
         # Handle movie_path: if null in YAML, it becomes None in Python
         movie_path_value = config_data["general"]["movie_path"]
         if movie_path_value is not None:
             movie_path_value = str(movie_path_value)
         self._general.movie_path = self._resolve_movie_path(movie_path=movie_path_value)
+
+        # Handle image folder path when needed
+        image_folder_value = config_data["general"]["images_path"]
+        if image_folder_value is not None:
+            image_folder_value = str(image_folder_value)
+        self._general.image_folder = self._resolve_image_folder(image_folder_value)
         
         # Validate the final configuration
         self._validate()
@@ -392,3 +449,13 @@ expert:
             print(f"Movie Path: {self._general.movie_path}")
         elif self._general.source == InputSource.CAMERA:
             print(f"Camera Index: {self._general.camera_index}")
+        elif self._general.source == InputSource.IMAGE:
+            print(f"Image Folder: {self._general.image_folder}")
+
+    def get_image_folder_path(self) -> Optional[str]:
+        """Get image folder path for image input."""
+        return self._general.image_folder
+
+    def is_input_images(self) -> bool:
+        """Check if input source is image folder."""
+        return self._general.source == InputSource.IMAGE

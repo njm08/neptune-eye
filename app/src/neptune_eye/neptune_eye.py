@@ -7,8 +7,9 @@ This module provides the main entry point for running YOLO object detection on m
 from pathlib import Path
 
 from cv2 import __version__ as cv2_version
-from frame_capture.video_file_capture import VideoFileCapture
 from frame_capture.camera_capture import CameraCapture
+from frame_capture.image_capture import ImageCapture
+from frame_capture.video_file_capture import VideoFileCapture
 from object_detection.yolo_object_detection import Yolo11ObjectDetection
 from config import NeptuneEyeConfig
 from utilites import find_project_root
@@ -41,8 +42,14 @@ def continuous_capture_and_inference() -> None:
         raise RuntimeError(f"Failed to initialize YOLO model: {e}") from e
 
     # Initialize the input source (camera or movie file) and the result display (GUI or console)
-    capture_source = (CameraCapture(camera_index=config.get_camera_index()) if config.is_input_camera() 
-                      else VideoFileCapture(config.get_movie_path()))
+    if config.is_input_camera():
+        capture_source = CameraCapture(camera_index=config.get_camera_index())
+    elif config.is_input_movie():
+        capture_source = VideoFileCapture(config.get_movie_path())
+    elif config.is_input_images():
+        capture_source = ImageCapture(image_folder=config.get_image_folder_path())
+    else:
+        raise RuntimeError("No valid input source configured.")
     with capture_source as capture, ResultDisplay(headless=config.get_headless()) as result_display:   
 
         # Enter continuous capture and inference loop
