@@ -22,18 +22,109 @@ class WebServer:
 
     def index(self):
         return render_template_string("""
-            <html>
+            <!DOCTYPE html>
+            <html lang="en">
             <head>
-                <title>Neptune Eye Live Feed</title>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Neptune Eye | Live Monitor</title>
                 <style>
-                    body { font-family: Arial, sans-serif; text-align: center; background-color: #f0f0f0; }
-                    h1 { color: #333; }
-                    img { border: 5px solid #333; border-radius: 10px; max-width: 100%; height: auto; }
+                    :root {
+                        --bg-color: #121212;
+                        --card-bg: #1e1e1e;
+                        --text-color: #e0e0e0;
+                        --accent-color: #007acc;
+                        --border-color: #333;
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                        background-color: var(--bg-color);
+                        color: var(--text-color);
+                        margin: 0;
+                        padding: 0;
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    header {
+                        background-color: var(--card-bg);
+                        padding: 1rem 2rem;
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    }
+                    .brand {
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        color: #fff;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .status-badge {
+                        background-color: #28a745;
+                        color: white;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-size: 0.8rem;
+                        font-weight: 500;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    main {
+                        flex: 1;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 20px;
+                        overflow: hidden;
+                    }
+                    .video-container {
+                        background-color: #000;
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                        padding: 4px;
+                        max-width: 100%;
+                        max-height: 100%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    img {
+                        max-width: 100%;
+                        max-height: 80vh;
+                        width: auto;
+                        height: auto;
+                        display: block;
+                        border-radius: 4px;
+                    }
+                    footer {
+                        text-align: center;
+                        padding: 10px;
+                        font-size: 0.8rem;
+                        color: #666;
+                    }
                 </style>
             </head>
             <body>
-                <h1>Neptune Eye Live Feed</h1>
-                <img src="{{ url_for('video_feed') }}">
+                <header>
+                    <div class="brand">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        Neptune Eye
+                    </div>
+                    <div class="status-badge">Live</div>
+                </header>
+                <main>
+                    <div class="video-container">
+                        <img src="{{ url_for('video_feed') }}" alt="Live Feed">
+                    </div>
+                </main>
+                <footer>
+                    Neptune Eye Object Detection System
+                </footer>
             </body>
             </html>
         """)
