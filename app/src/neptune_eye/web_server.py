@@ -1,10 +1,62 @@
+"""
+Neptune Eye - Web Server
+
+This module provides a lightweight Flask web server to stream the live object detection feed.
+It uses MJPEG streaming to display the annotated frames in a web browser.
+
+Key Features:
+- Runs in a separate thread to avoid blocking the main detection loop.
+- Uses a background thread for JPEG encoding to decouple frame rate from client count.
+- Provides a professional dark-mode UI for monitoring.
+
+Thread Architecture:
+
++----------------+          +------------------+           +-------------------+
+|  Main Thread   |          |  Encoding Thread |           | Web Server Thread |
+| (Detection Loop)|          | (JPEG Converter) |           | (Flask / Clients) |
++----------------+          +------------------+           +-------------------+
+        |                            |                               |
+  [New Frame]                        |                               |
+        |                            |                               |
+  update_frame()                     |                               |
+        |---(Raw Frame)------------->|                               |
+        |   (Signal Event)           |                               |
+        |                            |                               |
+        |                      [Wait Event]                          |
+        |                            |                               |
+        |                     Encode to JPEG                         |
+        |                            |                               |
+        |                     (Signal Condition)                     |
+        |                            |----(Encoded Frame)----------->|
+        |                            |                               |
+        |                            |                         [Wait Condition]
+        |                            |                               |
+        |                            |                          Send to Client
+        v                            v                               v
+"""
+
 from flask import Flask, Response, render_template_string
 import threading
 import cv2
 import time
 
 class WebServer:
+    """
+    A threaded web server that streams video frames to a web browser.
+    
+    This class handles:
+    1. Receiving raw frames from the main application.
+    2. Encoding them to JPEG in a background thread (to save main thread CPU).
+    3. Serving them via HTTP using MJPEG streaming.
+    """
     def __init__(self, host='0.0.0.0', port=5005):
+        """
+        Initialize the web server.
+
+        Args:
+            host (str): The hostname to listen on. Defaults to '0.0.0.0' (all interfaces).
+            port (int): The port to listen on. Defaults to 5005.
+        """
         self.app = Flask(__name__)
         self.host = host
         self.port = port
@@ -27,6 +79,12 @@ class WebServer:
         self.app.add_url_rule('/video_feed', 'video_feed', self.video_feed)
 
     def index(self):
+        """
+        Render the main page.
+        
+        Returns:
+            str: The HTML content of the main page.
+        """
         return render_template_string("""
             <!DOCTYPE html>
             <html lang="en">
@@ -136,10 +194,23 @@ class WebServer:
         """)
 
     def video_feed(self):
+        """
+        Route for the video stream.
+        
+        Returns:
+            Response: A Flask Response object containing the multipart MJPEG stream.
+        """
         return Response(self.generate(),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def generate(self):
+        """
+        Generator function that yields JPEG frames for the MJPEG stream.
+        
+        This function waits for new encoded frames to be available and yields them
+        as multipart HTTP responses. It handles multiple clients efficiently by
+        waiting on a condition variable.
+        """
         while True:
             with self.frame_condition:
                 self.frame_condition.wait()
@@ -151,6 +222,16 @@ class WebServer:
                    b'Content-Type: image/jpeg\r\n\r\n' + current_bytes + b'\r\n')
 
     def update_frame(self, frame):
+        """
+        Update the current frame to be displayed.
+        
+        This method is called by the main application loop. It copies the frame
+        and signals the background encoding thread. It is designed to be non-blocking
+        to minimize impact on the object detection loop.
+
+        Args:
+            frame (numpy.ndarray): The new video frame (BGR format).
+        """
         # Just store the raw frame and signal the encoder thread
         # This is non-blocking for the main detection loop
         with self.frame_lock:
@@ -158,7 +239,12 @@ class WebServer:
         self.new_raw_frame_event.set()
 
     def _encoding_loop(self):
-        """Background thread to encode frames to JPEG."""
+        """
+        Background thread to encode frames to JPEG.
+        
+        This loop waits for new raw frames, encodes them to JPEG, and then
+        notifies all connected clients via the condition variable.
+        """
         while True:
             self.new_raw_frame_event.wait()
             self.new_raw_frame_event.clear()
@@ -178,6 +264,9 @@ class WebServer:
                     self.frame_condition.notify_all()
 
     def start(self):
+        """
+        Start the web server in a separate daemon thread.
+        """
         self.running = True
         # Disable Flask banner
         import logging
