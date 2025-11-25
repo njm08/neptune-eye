@@ -77,6 +77,12 @@ class WebServer:
         # Background encoding thread
         self.raw_frame = None
         self.new_raw_frame_event = threading.Event()
+        
+        # Frame rate limiting
+        self.last_frame_time = 0
+        self.target_fps = 30
+        self.frame_interval = 1.0 / self.target_fps
+
         self.encoding_thread = threading.Thread(target=self._encoding_loop, daemon=True)
         self.encoding_thread.start()
 
@@ -233,11 +239,19 @@ class WebServer:
         
         This method is called by the main application loop. It copies the frame
         and signals the background encoding thread. It is designed to be non-blocking
-        to minimize impact on the object detection loop.
+        to minimize impact on the object detection loop. It also implements rate
+        limiting to ensure the web server doesn't consume too many resources.
 
         Args:
             frame (numpy.ndarray): The new video frame (BGR format).
         """
+        # Rate limiting: Drop frames if they come in too fast
+        current_time = time.time()
+        if current_time - self.last_frame_time < self.frame_interval:
+            return
+
+        self.last_frame_time = current_time
+
         # Just store the raw frame and signal the encoder thread
         # This is non-blocking for the main detection loop
         with self.frame_lock:
