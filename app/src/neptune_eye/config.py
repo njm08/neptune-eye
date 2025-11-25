@@ -40,6 +40,7 @@ class ExpertConfig:
     device: Optional[InferenceDevice]
     model_path: Optional[str]
     enable_web_server: bool
+    web_server_name: str
 
 class NeptuneEyeConfig:
     """Complete Neptune Eye configuration."""
@@ -246,6 +247,7 @@ expert:
   override_model_path: null          # Possibility to override the used model. Can be relative to root or absolute path. null is default. 
   override_device: null              # Possibility to override the device. Options: null (best detected device for inference is used), "NVIDIA_GPU", "M1_GPU", "CPU"
   enable_web_server: true            # True to enable the web server for live streaming, false to disable it
+  web_server_name: "neptune-eye"     # Name to advertise on the network (e.g. neptune-eye.local)
 """
         return content
 
@@ -352,7 +354,8 @@ expert:
                 image_size=int(config_data["expert"]["image_size"]),
                 device=self._map_device(config_data["expert"]["override_device"]) or self._detect_best_device(),
                 model_path=None,  # Will be resolved after instance creation
-                enable_web_server=bool(config_data["expert"].get("enable_web_server", True)) # Default to True if not present
+                enable_web_server=bool(config_data["expert"].get("enable_web_server", True)), # Default to True if not present
+                web_server_name=str(config_data["expert"].get("web_server_name", "neptune-eye"))
             )
 
         except KeyError as e:
@@ -436,6 +439,10 @@ expert:
     def get_enable_web_server(self) -> bool:
         """Get web server enabled status."""
         return self._expert.enable_web_server
+
+    def get_web_server_name(self) -> str:
+        """Get the web server name for mDNS advertisement."""
+        return self._expert.web_server_name
     
     def is_input_movie(self) -> bool:
         """Check if input source is movie file."""

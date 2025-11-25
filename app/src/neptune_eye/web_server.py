@@ -39,6 +39,8 @@ from flask import Flask, Response, render_template_string
 import threading
 import cv2
 import time
+import socket
+from zeroconf import ServiceInfo, Zeroconf
 
 class WebServer:
     """
@@ -49,17 +51,21 @@ class WebServer:
     2. Encoding them to JPEG in a background thread (to save main thread CPU).
     3. Serving them via HTTP using MJPEG streaming.
     """
-    def __init__(self, host='0.0.0.0', port=5005):
+    def __init__(self, host='0.0.0.0', port=5005, name="neptune-eye"):
         """
         Initialize the web server.
 
         Args:
             host (str): The hostname to listen on. Defaults to '0.0.0.0' (all interfaces).
             port (int): The port to listen on. Defaults to 5005.
+            name (str): The service name for mDNS. Defaults to "neptune-eye".
         """
         self.app = Flask(__name__)
         self.host = host
         self.port = port
+        self.name = name
+        self.zeroconf = None
+        self.service_info = None
         
         # Frame management
         self.frame = None
@@ -263,6 +269,39 @@ class WebServer:
                     self.encoded_frame = bytearray(encoded_image)
                     self.frame_condition.notify_all()
 
+    def _register_service(self):
+        """Register the service via mDNS."""
+        try:
+            self.zeroconf = Zeroconf()
+            
+            # Get local IP address
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                # doesn't even have to be reachable
+                s.connect(('10.255.255.255', 1))
+                ip_address = s.getsockname()[0]
+            except Exception:
+                ip_address = '127.0.0.1'
+            finally:
+                s.close()
+
+            desc = {'path': '/'}
+            
+            self.service_info = ServiceInfo(
+                "_http._tcp.local.",
+                f"{self.name}._http._tcp.local.",
+                addresses=[socket.inet_aton(ip_address)],
+                port=self.port,
+                properties=desc,
+                server=f"{self.name}.local.",
+            )
+            
+            print(f"Registering mDNS service: {self.name}.local at {ip_address}:{self.port}")
+            self.zeroconf.register_service(self.service_info)
+            
+        except Exception as e:
+            print(f"Failed to register mDNS service: {e}")
+
     def start(self):
         """
         Start the web server in a separate daemon thread.
@@ -278,3 +317,6 @@ class WebServer:
         t.daemon = True
         t.start()
         print(f"Web server started at http://{self.host}:{self.port}")
+        
+        # Register mDNS service
+        self._register_service()

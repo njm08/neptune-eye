@@ -55,7 +55,7 @@ def continuous_capture_and_inference() -> None:
     # Start web server if enabled
     web_server = None
     if config.get_enable_web_server():
-        web_server = WebServer()
+        web_server = WebServer(name=config.get_web_server_name())
         web_server.start()
 
     with capture_source as capture, ResultDisplay(headless=config.get_headless(), web_server=web_server) as result_display:   
